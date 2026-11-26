@@ -1,4 +1,4 @@
-Public Class PageDownloadLeft
+﻿Public Class PageDownloadLeft
     Implements IRefreshable
 
 #Region "页面切换"
@@ -6,22 +6,28 @@ Public Class PageDownloadLeft
     ''' <summary>
     ''' 当前页面的编号。
     ''' </summary>
-    Public PageID As FormMain.PageSubType = FormMain.PageSubType.DownloadInstall
+    Public PageID As FormMain.PageSubType = FormMain.PageSubType.DownloadEasy
+    '新手一键安装页
+    Private FrmDownloadEasy As PageEasyInstall
 
     '隐藏 MC 下载
     Public Sub New()
         InitializeComponent()
-        If Not RestrictMcDownload Then Return
-        ItemInstall.Visibility = Visibility.Collapsed
-        LabResource.Visibility = Visibility.Collapsed
-        PageID = FormMain.PageSubType.DownloadMod
-        ItemMod.Checked = True
+        If RestrictMcDownload Then
+            ItemEasy.Visibility = Visibility.Collapsed
+            ItemInstall.Visibility = Visibility.Collapsed
+            LabResource.Visibility = Visibility.Collapsed
+            PageID = FormMain.PageSubType.DownloadMod
+            ItemMod.Checked = True
+            Return
+        End If
+        ItemEasy.Checked = True
     End Sub
 
     ''' <summary>
     ''' 勾选事件改变页面。
     ''' </summary>
-    Private Sub PageCheck(sender As FrameworkElement, e As RouteEventArgs) Handles ItemInstall.Check, ItemMod.Check, ItemPack.Check, ItemResourcePack.Check, ItemShader.Check, ItemDataPack.Check
+    Private Sub PageCheck(sender As FrameworkElement, e As RouteEventArgs) Handles ItemEasy.Check, ItemInstall.Check, ItemMod.Check, ItemPack.Check, ItemResourcePack.Check, ItemShader.Check, ItemDataPack.Check
         '尚未初始化控件属性时，sender.Tag 为 Nothing，会导致切换到页面 0
         '若使用 IsLoaded，则会导致模拟点击不被执行（模拟点击切换页面时，控件的 IsLoaded 为 False）
         If sender.Tag IsNot Nothing Then PageChange(Val(sender.Tag))
@@ -30,6 +36,9 @@ Public Class PageDownloadLeft
     Public Function PageGet(Optional ID As FormMain.PageSubType = -1)
         If ID = -1 Then ID = PageID
         Select Case ID
+            Case FormMain.PageSubType.DownloadEasy
+                If FrmDownloadEasy Is Nothing Then FrmDownloadEasy = New PageEasyInstall
+                Return FrmDownloadEasy
             Case FormMain.PageSubType.DownloadInstall
                 If FrmDownloadInstall Is Nothing Then FrmDownloadInstall = New PageDownloadInstall
                 Return FrmDownloadInstall
@@ -52,6 +61,19 @@ Public Class PageDownloadLeft
                 Throw New Exception("未知的下载子页面种类：" & ID)
         End Select
     End Function
+
+    ''' <summary>
+    ''' 按页面 ID 勾选左侧导航项（供 FormMain 调用）。
+    ''' </summary>
+    Public Sub CheckItem(ID As FormMain.PageSubType, Optional Stack As FormMain.PageStackData = Nothing)
+        For Each Child In PanItem.Children
+            Dim Item = TryCast(Child, MyListItem)
+            If Item IsNot Nothing AndAlso Val(Item.Tag) = ID Then
+                Item.SetChecked(True, True, Stack)
+                Return
+            End If
+        Next
+    End Sub
 
     ''' <summary>
     ''' 切换现有页面。

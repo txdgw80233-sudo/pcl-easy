@@ -1,4 +1,4 @@
-Imports System.ComponentModel
+﻿Imports System.ComponentModel
 Imports System.Windows.Interop
 
 Public Class FormMain
@@ -1235,7 +1235,8 @@ Public Class FormMain
     ''' 该枚举在自定义事件中使用，是公开 API 的一部分。
     ''' </summary>
     Public Enum PageSubType
-        [Default] = 0
+        [Default] = -1
+        DownloadEasy = 7
         DownloadInstall = 0
         DownloadMod = 2
         DownloadPack = 3
@@ -1377,13 +1378,13 @@ Public Class FormMain
             Select Case Stack.Page
                 Case PageType.Download
                     If FrmDownloadLeft Is Nothing Then FrmDownloadLeft = New PageDownloadLeft
-                    CType(FrmDownloadLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+                    FrmDownloadLeft.CheckItem(If(SubType = PageSubType.Default, FrmDownloadLeft.PageID, SubType), PageCurrent)
                 Case PageType.Setup
                     If FrmSetupLeft Is Nothing Then FrmSetupLeft = New PageSetupLeft
-                    CType(FrmSetupLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+                    CType(FrmSetupLeft.PanItem.Children(If(SubType = PageSubType.Default, FrmSetupLeft.PageID, SubType)), MyListItem).SetChecked(True, True, Stack = PageCurrent)
                 Case PageType.Other
                     If FrmOtherLeft Is Nothing Then FrmOtherLeft = New PageOtherLeft
-                    CType(FrmOtherLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+                    CType(FrmOtherLeft.PanItem.Children(If(SubType = PageSubType.Default, FrmOtherLeft.PageID, SubType)), MyListItem).SetChecked(True, True, Stack = PageCurrent)
             End Select
             PageChangeActual(Stack, SubType)
         Else
@@ -1391,7 +1392,7 @@ Public Class FormMain
             Select Case Stack.Page
                 Case PageType.InstanceSetup
                     If FrmInstanceLeft Is Nothing Then FrmInstanceLeft = New PageInstanceLeft
-                    CType(FrmInstanceLeft.PanItem.Children(SubType), MyListItem).SetChecked(True, True, Stack = PageCurrent)
+                    CType(FrmInstanceLeft.PanItem.Children(If(SubType = PageSubType.Default, FrmInstanceLeft.PageID, SubType)), MyListItem).SetChecked(True, True, Stack = PageCurrent)
             End Select
             PageChangeActual(Stack, SubType)
         End If
