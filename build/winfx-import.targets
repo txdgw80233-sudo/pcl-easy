@@ -1,0 +1,32 @@
+<Project>
+  <!-- 让经典 .NET Framework 工程也能被 dotnet MSBuild 完整编译（无需安装 Visual Studio）：
+       - 补上 .NET Framework 4.8 引用程序集目录
+       - 显式引用 mscorlib / Microsoft.VisualBasic（SDK 风格工程会自动带上，经典工程不会）
+       - 引入 SDK 自带的 WPF 标记编译目标（net9.0 版任务，可被 dotnet MSBuild 加载）
+       用法：dotnet msbuild <工程> -p:CustomAfterMicrosoftCommonTargets=<本文件>
+       注意：同时会作用于 WPF 生成的临时工程 *_wpftmp，因此用 StartsWith 匹配。 -->
+  <PropertyGroup>
+    <_IsPclMain>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Plain Craft Launcher 2'))</_IsPclMain>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_IsPclMain)' == 'true'">
+    <TargetFrameworkDirectory Condition="'$(TargetFrameworkDirectory)' == ''">C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8</TargetFrameworkDirectory>
+    <FrameworkPathOverride Condition="'$(FrameworkPathOverride)' == ''">C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8</FrameworkPathOverride>
+    <!-- 经典工程没有 NuGet 的 obj 文件，临时程序集流程会去找这些文件而失败 -->
+    <AlwaysCompileMarkupFilesInSeparateDomain>false</AlwaysCompileMarkupFilesInSeparateDomain>
+    <IncludePackageReferencesDuringMarkupCompilation>false</IncludePackageReferencesDuringMarkupCompilation>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_IsPclMain)' == 'true'">
+    <Reference Include="mscorlib">
+      <HintPath>$(TargetFrameworkDirectory)\mscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic">
+      <HintPath>$(TargetFrameworkDirectory)\Microsoft.VisualBasic.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Sdks\Microsoft.NET.Sdk.WindowsDesktop\targets\Microsoft.WinFX.targets" Condition="'$(_IsPclMain)' == 'true'" />
+</Project>
