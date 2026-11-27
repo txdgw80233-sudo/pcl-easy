@@ -132,6 +132,15 @@ Public Module EasyAiRules
         })
 
         L.Add(New AiRule With {
+            .Title = "OptiFine 和 Fabric 混装冲突",
+            .Keys = {"OptiFine 和 Fabric", "optifine 冲突", "OptiFine 混装", "混合安装", "OptiFine 一起装"},
+            .Answer = "结论：OptiFine 和 Fabric 一起装容易冲突，尤其是新版本。" & vbCrLf &
+                      "1. 只用一种：要光影就用 Iris（Fabric 方案），别再加 OptiFine。" & vbCrLf &
+                      "2. 已经混装了：把 OptiFine 的 jar 从 mods 里移走。" & vbCrLf &
+                      "3. 想省事就用「一键开光影」，它用的是 Iris。" 
+        })
+
+        L.Add(New AiRule With {
             .Title = "光影装不上 / 开了光影就崩",
             .Keys = {"光影", "Iris", "OptiFine", "shader", "shaderpack"},
             .Answer = "结论：光影要先装支持光影的加载器（Iris / OptiFine），而且对显卡要求高。" & vbCrLf &
@@ -309,6 +318,178 @@ Public Module EasyAiRules
                       "1. 打开 AI 答疑窗口，点「下载并启动」，等进度走完。" & vbCrLf &
                       "2. 下载会自动挑最快的源，失败会换源。" & vbCrLf &
                       "3. 游戏运行时 AI 会自动关闭（默认），这是正常的，能省内存。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "提示「现有实例正在以提升的权限运行」",
+            .Keys = {"提升的权限运行", "以提升的权限", "已有实例", "另一个实例"},
+            .Answer = "结论：已经有一个「以管理员身份运行」的启动器在后台，普通双击打开时就会提示这个。" & vbCrLf &
+                      "1. 任务管理器 → 详细信息，结束所有「Plain Craft Launcher 2.exe」进程。" & vbCrLf &
+                      "2. 以后正常双击打开即可，不要右键「以管理员身份运行」。" & vbCrLf &
+                      "3. 如果结束不掉，重启电脑最省事。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "该微软账号没有购买 Minecraft",
+            .Keys = {"没有购买", "未拥有", "does not own", "not entitled", "Xbox 帐户"},
+            .Answer = "结论：这个微软账号没有买过 Minecraft（或者买在了另一个账号上），正版登录会被拒绝。" & vbCrLf &
+                      "1. 确认买游戏的账号和你现在登录的是同一个。" & vbCrLf &
+                      "2. 官网 xbox.com 里的「我的游戏」能看到 Minecraft 才算拥有。" & vbCrLf &
+                      "3. 暂时可以先用「离线登录」玩单机。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "登录服务器连不上（login.live.com / 登录超时）",
+            .Keys = {"login.live.com", "登录超时", "无法连接到登录", "登录服务器"},
+            .Answer = "结论：启动器连不上微软的登录服务器，通常是网络/代理问题。" & vbCrLf &
+                      "1. 关掉 VPN、加速器、代理软件，再点「正版」重试。" & vbCrLf &
+                      "2. 换手机热点试一次，能登说明是原来的网络问题。" & vbCrLf &
+                      "3. 都不行就先用「离线登录」。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "证书 / TLS 错误",
+            .Keys = {"证书", "TLS", "SSL", "SecureChannel", "schannel", "无法建立安全连接"},
+            .Answer = "结论：系统时间不对，或者代理软件篡改了 HTTPS 证书。" & vbCrLf &
+                      "1. 把系统时间自动同步打开（设置 → 时间和语言）。" & vbCrLf &
+                      "2. 关掉抓包/代理类软件（Clash、Fiddler 等）再试。" & vbCrLf &
+                      "3. 还不行就换网络（手机热点）确认是不是网络劫持。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "JVM 参数错误 / 内存分配过大",
+            .Keys = {"JVM", "Xmx", "Invalid maximum heap", "无法创建 Java 虚拟机", "参数错误"},
+            .Answer = "结论：手动填的 Java 启动参数不对，或者给的内存超过了电脑实际内存。" & vbCrLf &
+                      "1. 版本设置 → 设置 → 启动选项 → 自定义 JVM 参数，点「恢复默认」。" & vbCrLf &
+                      "2. 版本设置 → 设置 → 游戏内存，改回「自动配置」。" & vbCrLf &
+                      "3. 保存后重新启动游戏。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "无法创建游戏进程（CreateProcess 失败）",
+            .Keys = {"CreateProcess", "无法启动进程", "未能启动 java", "The system cannot find the file"},
+            .Answer = "结论：启动器找不到 Java，或者 Java 路径被改动/删除了。" & vbCrLf &
+                      "1. 设置 → 启动 → Java，选「自动选择」。" & vbCrLf &
+                      "2. 还不行就点「下载 Java」，让启动器装一个。" & vbCrLf &
+                      "3. 杀软如果删过 Java 文件，需要重新装 Java。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "游戏版本不存在 / 版本文件缺失",
+            .Keys = {"版本不存在", "找不到版本", "version json", "版本文件缺失", "无法读取版本"},
+            .Answer = "结论：这个版本的文件不完整，或者你删过 versions 里的东西。" & vbCrLf &
+                      "1. 版本设置 → 概览 → 高级管理 → 「补全文件」。" & vbCrLf &
+                      "2. 补全不了就重新「一键安装」装一次同名版本。" & vbCrLf &
+                      "3. 装之前先备份存档。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "下载源/镜像连不上",
+            .Keys = {"BMCLAPI", "镜像源", "下载源", "源不可用", "镜像连不上"},
+            .Answer = "结论：当前选的下载源在你的网络下不通。" & vbCrLf &
+                      "1. 设置 → 启动 → 文件下载源，切到「优先使用官方源」或「优先使用镜像源」，两个都试一次。" & vbCrLf &
+                      "2. 关掉 VPN/加速器再试。" & vbCrLf &
+                      "3. 只是某个版本下不动，可以过一会儿再试。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "缺 Fabric API（Mod 要求 fabric-api）",
+            .Keys = {"fabric-api", "Fabric API", "requires fabric", "缺少前置"},
+            .Answer = "结论：Fabric 的 Mod 大多需要 Fabric API 这个底座，没装就会被跳过或报错。" & vbCrLf &
+                      "1. 下载 → 一键安装 → 装好 Fabric 后点「一键装好」，会把 Fabric API 一起装上。" & vbCrLf &
+                      "2. 已经装过游戏：把 fabric-api 的 .jar 放进该版本的 mods 文件夹。" & vbCrLf &
+                      "3. 注意 Fabric API 的版本要和游戏版本一致。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "加载器装错（Forge Mod 装到 Fabric 上）",
+            .Keys = {"Forge Mod", "装错加载器", "加载器不匹配", "mod loader mismatch", "fabric 版"},
+            .Answer = "结论：Mod 和加载器类型必须一致——Forge 的 Mod 只能配 Forge，Fabric 的只能配 Fabric。" & vbCrLf &
+                      "1. 看 Mod 下载页写的「Fabric / Forge / NeoForge」。" & vbCrLf &
+                      "2. 装一个对应类型的版本（一键安装里可以选 Fabric 或 Forge）。" & vbCrLf &
+                      "3. 把 Mod 放进那个版本的 mods 文件夹。"
+        })
+
+
+        L.Add(New AiRule With {
+            .Title = "杀毒软件把游戏文件删了",
+            .Keys = {"文件消失", "被删了", "少了一个文件", "杀毒删除", "隔离区"},
+            .Answer = "结论：杀软把 .jar 或 exe 当病毒删掉了，这在未签名的启动器上很常见。" & vbCrLf &
+                      "1. 到杀软的「隔离区」恢复被删的文件。" & vbCrLf &
+                      "2. 把启动器文件夹和游戏目录加入白名单。" & vbCrLf &
+                      "3. 用「补全文件」把缺的游戏文件补回来。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "资源包 / 光影包 zip 损坏",
+            .Keys = {"zip 损坏", "压缩包损坏", "材质包加载失败", "shader 加载失败", "无效的 zip"},
+            .Answer = "结论：下载的包不完整或不是标准 zip。" & vbCrLf &
+                      "1. 重新下载一次，别用下载工具改文件名。" & vbCrLf &
+                      "2. 光影包直接放 shaderpacks，不要解压。" & vbCrLf &
+                      "3. 材质包放 resourcepacks，也别解压。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "用户名含中文导致异常",
+            .Keys = {"中文用户名", "用户名是中文", "C:\Users\中文"},
+            .Answer = "结论：有些老游戏/Mod 处理不了中文路径（比如 C:\Users\小明）。" & vbCrLf &
+                      "1. 把启动器和游戏目录都放到 D:\MC 这类纯英文路径。" & vbCrLf &
+                      "2. 设置 → 启动 里把游戏目录改到新位置。" & vbCrLf &
+                      "3. 不要直接改 Windows 用户名，风险大。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "无法保存截图 / 日志（目录只读）",
+            .Keys = {"无法保存截图", "日志写入失败", "只读", "无法写入文件"},
+            .Answer = "结论：启动器所在的文件夹没有写权限（比如放在 C:\Program Files）。" & vbCrLf &
+                      "1. 把启动器整个文件夹挪到 D 盘普通目录。" & vbCrLf &
+                      "2. 不要放在 Program Files、系统盘根目录。" & vbCrLf &
+                      "3. 挪完重开启动器。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "显卡驱动崩溃（驱动重置 / GL_OUT_OF_MEMORY）",
+            .Keys = {"GL_OUT_OF_MEMORY", "驱动重置", "display driver", "TDR", "显卡崩溃"},
+            .Answer = "结论：显卡驱动崩了，常见于驱动太旧或光影太吃显存。" & vbCrLf &
+                      "1. 先把光影关掉（选项 → 视频设置 → 光影）。" & vbCrLf &
+                      "2. 更新显卡驱动，笔记本确认在用独显。" & vbCrLf &
+                      "3. 降低渲染距离/画质再试。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "整合包解压失败",
+            .Keys = {"解压失败", "解压缩", "压缩包损坏", "无法解压"},
+            .Answer = "结论：整合包文件不完整，或者磁盘空间不够。" & vbCrLf &
+                      "1. 确认磁盘至少还有整合包 3 倍大小的空间。" & vbCrLf &
+                      "2. 重新下载整合包（别用浏览器断点续传的残包）。" & vbCrLf &
+                      "3. 还是失败就换个整合包，或联系整合包作者。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "版本列表 / 资源列表加载失败",
+            .Keys = {"版本列表加载失败", "获取版本列表失败", "资源列表加载", "列表是空的"},
+            .Answer = "结论：启动器没连上资源服务器，列表拉不下来。" & vbCrLf &
+                      "1. 点右上角的「刷新」按钮重试。" & vbCrLf &
+                      "2. 关掉 VPN/代理，或换个下载源。" & vbCrLf &
+                      "3. 网络正常还空，点「导出诊断包」看具体报错。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "启动器更新失败 / 覆盖后打不开",
+            .Keys = {"更新失败", "覆盖后打不开", "新版本打不开", "升级后"},
+            .Answer = "结论：覆盖更新时旧文件没清干净，或者被杀软拦了。" & vbCrLf &
+                      "1. 关掉启动器，把整个文件夹删掉（先备份存档和 PCL 文件夹）。" & vbCrLf &
+                      "2. 重新解压一份新版本，游戏目录不用动。" & vbCrLf &
+                      "3. 注意不要只覆盖 exe 一个文件。"
+        })
+
+        L.Add(New AiRule With {
+            .Title = "游戏能开但没声音",
+            .Keys = {"没有声音", "没声音", "声音卡", "音频设备"},
+            .Answer = "结论：通常是系统默认音频设备变了，或者游戏里的声音被关。" & vbCrLf &
+                      "1. 游戏里 选项 → 音乐和声音，确认不是 0。" & vbCrLf &
+                      "2. Windows 声音设置里切换一下默认输出设备。" & vbCrLf &
+                      "3. 蓝牙耳机切换设备后，要重进游戏才生效。"
         })
 
         Return L
