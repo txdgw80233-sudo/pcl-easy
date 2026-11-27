@@ -1,6 +1,9 @@
-Imports System.Windows.Threading
+﻿Imports System.Windows.Threading
 
 Public Class PageLaunchLeft
+
+    '不在启动时自动刷新登录：只有用户主动点「正版」或启动游戏时才发起登录
+    Private Const EasyNoAutoLogin As Boolean = True
 
     '加载当前版本
     Private IsLoad As Boolean = False
@@ -83,7 +86,7 @@ Public Class PageLaunchLeft
                 IsLoadFinished = True
                 RefreshButtonsUI()
                 RefreshPage(False, False) '有可能选择的版本变化了，需要重新刷新
-                If McLoginAble() = "" Then McLoginLoader.Start() '自动登录
+                If Not EasyNoAutoLogin AndAlso McLoginAble() = "" Then McLoginLoader.Start() '自动登录
                 '用于自动化测试生成的程序是否可以正常运行
                 If Environment.CommandLine.Contains("--test") Then
                     RunInThread(
@@ -111,6 +114,30 @@ Public Class PageLaunchLeft
         Dim LoginType = Settings.Get(Of McLoginType)("LoginType")
         If LoginType = McLoginType.Legacy OrElse LoginType = McLoginType.Ms Then CType(FindName("RadioLoginType" & LoginType), MyRadioButton).Checked = True
         RefreshPage(False, False)
+
+        '点「正版」就发起登录（即使它已经是选中状态）
+        AddHandler RadioLoginType5.PreviewMouseLeftButtonUp,
+            Sub(sender2 As Object, e2 As MouseButtonEventArgs)
+                If Not RadioLoginType5.Checked Then Return
+                If FrmLoginMs IsNot Nothing Then
+                    FrmLoginMs.StartLogin()
+                    Return
+                End If
+                '当前显示的是皮肤页（已有缓存），切到登录页再发起登录
+                PageChange(PageType.Ms, True)
+                RunInThread(
+                    Sub()
+                        Thread.Sleep(500) '等页面初始化完成
+                        RunInUi(
+                            Sub()
+                                Try
+                                    If FrmLoginMs IsNot Nothing Then FrmLoginMs.StartLogin()
+                                Catch ex As Exception
+                                    Logger.Error(ex, "打开正版登录失败")
+                                End Try
+                            End Sub)
+                    End Sub)
+            End Sub
 
         AniControlEnabled -= 1
     End Sub
@@ -372,6 +399,10 @@ UnknownType:
     End Sub
     Private Sub RadioLoginType_Change(sender As Object, raiseByMouse As Boolean) Handles RadioLoginType0.Check, RadioLoginType5.Check
         If raiseByMouse Then RefreshPage(True, True)
+        '点「正版」时就主动发起登录（启动时不自动登录）
+        If raiseByMouse AndAlso sender Is RadioLoginType5 AndAlso FrmLoginMs IsNot Nothing Then
+            FrmLoginMs.StartLogin()
+        End If
     End Sub
 
 #End Region

@@ -1,4 +1,4 @@
-Public Class PageLoginMs
+﻿Public Class PageLoginMs
 
     ''' <summary>
     ''' 刷新页面显示的所有信息。
@@ -41,11 +41,17 @@ Public Class PageLoginMs
         Dim Result As McLoginMs = Nothing
         RunInUiWait(
         Sub()
-            If FrmLoginMs.ComboAccounts.SelectedIndex = 0 Then
-                Result = New McLoginMs
-            Else
-                Dim Item As MyListItem = FrmLoginMs.ComboAccounts.SelectedItem
+            If FrmLoginMs Is Nothing OrElse FrmLoginMs.ComboAccounts Is Nothing Then
+                '页面尚未初始化，回退到缓存的刷新令牌
+                Result = New McLoginMs With {.OAuthRefreshToken = Settings.Get(Of String)("CacheMsV2OAuthRefresh"), .UserName = Settings.Get(Of String)("CacheMsV2Name")}
+                Return
+            End If
+            Dim Selected = FrmLoginMs.ComboAccounts.SelectedItem
+            If TypeOf Selected Is MyListItem Then
+                Dim Item = CType(Selected, MyListItem)
                 Result = New McLoginMs With {.OAuthRefreshToken = Item.Tag, .UserName = Item.Title}
+            Else
+                Result = New McLoginMs
             End If
         End Sub)
         Return Result
@@ -65,6 +71,17 @@ Public Class PageLoginMs
     End Function
 
     Private Sub BtnLogin_Click(sender As Object, e As EventArgs) Handles BtnLogin.Click
+        StartLogin()
+    End Sub
+
+    '主动发起一次微软登录（供「点正版时自动登录」调用）
+    Public Sub StartLogin()
+        If McLoginMsLoader.State = LoadState.Loading Then Return
+        If ComboAccounts Is Nothing Then
+            '页面还没初始化完，等加载完成后再登录
+            AddHandler Loaded, Sub() StartLogin()
+            Return
+        End If
         ComboAccounts.IsEnabled = False
         BtnLogin.IsEnabled = False
         BtnLogin.Text = "0%"
