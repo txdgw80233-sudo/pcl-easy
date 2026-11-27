@@ -1,4 +1,4 @@
-Public Class PageInstanceSetup
+﻿Public Class PageInstanceSetup
 
     Private LoadedFirst As Boolean = False
     Private Sub PageSetupSystem_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
@@ -69,6 +69,9 @@ Public Class PageInstanceSetup
             '游戏内存
             OnVersionRamTypeChanged(Settings.Get(Of Integer)("VersionRamType", Instance:=PageInstanceLeft.Instance))
 
+            '快捷设置（options.txt）
+            LoadQuickOptions()
+
         Catch ex As Exception
             Logger.Error(ex, "重载版本独立设置时出错")
         End Try
@@ -94,6 +97,175 @@ Public Class PageInstanceSetup
 
         Reload()
     End Sub
+
+#Region "快捷设置（游戏内 options.txt）"
+
+    Private IsLoadingQuick As Boolean = False
+
+    Private ReadOnly Property QuickOptionsFile As String
+        Get
+            Return PageInstanceLeft.Instance.PathIndie & "options.txt"
+        End Get
+    End Property
+
+    ' 读取 options.txt 里常见的游戏内选项，刷新到界面上。
+    Private Sub LoadQuickOptions()
+        If PageInstanceLeft.Instance Is Nothing OrElse SliderGamma Is Nothing Then Return
+        IsLoadingQuick = True
+        Try
+            Dim Gamma As Double = Val(ReadIni(QuickOptionsFile, "gamma", "0.5"))
+            SliderGamma.Value = CInt(Math.Round(Gamma * 100))
+            LabGammaValue.Text = SliderGamma.Value & "%"
+
+            Dim Render As Integer = CInt(Val(ReadIni(QuickOptionsFile, "renderDistance", "12")))
+            SliderRenderDistance.Value = Math.Max(0, Math.Min(30, Render - 2))
+            LabRenderValue.Text = (SliderRenderDistance.Value + 2) & " 区块"
+
+            Select Case Val(ReadIni(QuickOptionsFile, "maxFps", "260"))
+                Case Is <= 60 : ComboMaxFps.SelectedIndex = 0
+                Case Is <= 120 : ComboMaxFps.SelectedIndex = 1
+                Case Is <= 144 : ComboMaxFps.SelectedIndex = 2
+                Case Is <= 240 : ComboMaxFps.SelectedIndex = 3
+                Case Else : ComboMaxFps.SelectedIndex = 4
+            End Select
+
+            Select Case ReadIni(QuickOptionsFile, "particles", "all").Lower
+                Case "minimal" : ComboParticles.SelectedIndex = 2
+                Case "decreased" : ComboParticles.SelectedIndex = 1
+                Case Else : ComboParticles.SelectedIndex = 0
+            End Select
+
+            ComboGuiScale.SelectedIndex = Math.Max(0, Math.Min(4, CInt(Val(ReadIni(QuickOptionsFile, "guiScale", "0")))))
+
+            Dim Sensitivity As Double = Val(ReadIni(QuickOptionsFile, "sensitivity", "0.5"))
+            SliderSensitivity.Value = CInt(Math.Round(Sensitivity * 100))
+            LabSensitivityValue.Text = SliderSensitivity.Value & "%"
+
+            Dim Fov As Integer = CInt(Val(ReadIni(QuickOptionsFile, "fov", "70")))
+            SliderFov.Value = Math.Max(0, Math.Min(80, Fov - 30))
+            LabFovValue.Text = (SliderFov.Value + 30) & "°"
+
+            CheckBobView.Checked = ReadIni(QuickOptionsFile, "bobView", "true").Lower <> "false"
+            CheckAutoJump.Checked = ReadIni(QuickOptionsFile, "autoJump", "false").Lower = "true"
+
+            Select Case ReadIni(QuickOptionsFile, "graphics", "fancy").Lower
+                Case "fast" : ComboGraphics.SelectedIndex = 0
+                Case "fabulous" : ComboGraphics.SelectedIndex = 2
+                Case Else : ComboGraphics.SelectedIndex = 1
+            End Select
+        Catch ex As Exception
+            Logger.Error(ex, "读取游戏内选项失败")
+        Finally
+            IsLoadingQuick = False
+        End Try
+    End Sub
+
+    Private Sub WriteQuickOption(Key As String, Value As String)
+        If PageInstanceLeft.Instance Is Nothing Then Return
+        Try
+            WriteIni(QuickOptionsFile, Key, Value)
+            IniClearCache(QuickOptionsFile)
+            LabQuickStatus.Text = "已保存，下次启动游戏生效"
+        Catch ex As Exception
+            Logger.Error(ex, "写入游戏内选项失败", LogBehavior.Toast)
+            LabQuickStatus.Text = "保存失败，请查看日志"
+        End Try
+    End Sub
+
+    Private Sub SliderGamma_Change(sender As Object, user As Boolean)
+        If IsLoadingQuick Then Return
+        LabGammaValue.Text = SliderGamma.Value & "%"
+        WriteQuickOption("gamma", (SliderGamma.Value / 100).ToString("0.00", Globalization.CultureInfo.InvariantCulture))
+    End Sub
+
+    Private Sub BtnGammaMax_Click(sender As Object, e As MouseButtonEventArgs)
+        SliderGamma.Value = 100
+    End Sub
+
+    Private Sub SliderRenderDistance_Change(sender As Object, user As Boolean)
+        If IsLoadingQuick Then Return
+        LabRenderValue.Text = (SliderRenderDistance.Value + 2) & " 区块"
+        WriteQuickOption("renderDistance", (SliderRenderDistance.Value + 2).ToString())
+    End Sub
+
+    Private Sub ComboMaxFps_SelectionChanged(sender As Object, e As SelectionChangedEventArgs)
+        If IsLoadingQuick Then Return
+        Select Case ComboMaxFps.SelectedIndex
+            Case 0 : WriteQuickOption("maxFps", "60")
+            Case 1 : WriteQuickOption("maxFps", "120")
+            Case 2 : WriteQuickOption("maxFps", "144")
+            Case 3 : WriteQuickOption("maxFps", "240")
+            Case Else : WriteQuickOption("maxFps", "260")
+        End Select
+    End Sub
+
+    Private Sub ComboParticles_SelectionChanged(sender As Object, e As SelectionChangedEventArgs)
+        If IsLoadingQuick Then Return
+        Select Case ComboParticles.SelectedIndex
+            Case 1 : WriteQuickOption("particles", "decreased")
+            Case 2 : WriteQuickOption("particles", "minimal")
+            Case Else : WriteQuickOption("particles", "all")
+        End Select
+    End Sub
+
+    Private Sub ComboGuiScale_SelectionChanged(sender As Object, e As SelectionChangedEventArgs)
+        If IsLoadingQuick Then Return
+        WriteQuickOption("guiScale", Math.Max(0, ComboGuiScale.SelectedIndex).ToString())
+    End Sub
+
+    Private Sub SliderSensitivity_Change(sender As Object, user As Boolean)
+        If IsLoadingQuick Then Return
+        LabSensitivityValue.Text = SliderSensitivity.Value & "%"
+        WriteQuickOption("sensitivity", (SliderSensitivity.Value / 100).ToString("0.00", Globalization.CultureInfo.InvariantCulture))
+    End Sub
+
+    Private Sub SliderFov_Change(sender As Object, user As Boolean)
+        If IsLoadingQuick Then Return
+        LabFovValue.Text = (SliderFov.Value + 30) & "°"
+        WriteQuickOption("fov", (SliderFov.Value + 30).ToString())
+    End Sub
+
+    Private Sub CheckBobView_Change(sender As Object, user As Boolean)
+        If IsLoadingQuick Then Return
+        WriteQuickOption("bobView", If(CheckBobView.Checked, "true", "false"))
+    End Sub
+
+    Private Sub CheckAutoJump_Change(sender As Object, user As Boolean)
+        If IsLoadingQuick Then Return
+        WriteQuickOption("autoJump", If(CheckAutoJump.Checked, "true", "false"))
+    End Sub
+
+    Private Sub ComboGraphics_SelectionChanged(sender As Object, e As SelectionChangedEventArgs)
+        If IsLoadingQuick Then Return
+        Select Case ComboGraphics.SelectedIndex
+            Case 0 : WriteQuickOption("graphics", "fast")
+            Case 2 : WriteQuickOption("graphics", "fabulous")
+            Case Else : WriteQuickOption("graphics", "fancy")
+        End Select
+    End Sub
+
+    Private Sub BtnQuickReset_Click(sender As Object, e As MouseButtonEventArgs)
+        IsLoadingQuick = True
+        Try
+            WriteIni(QuickOptionsFile, "gamma", "0.50")
+            WriteIni(QuickOptionsFile, "renderDistance", "12")
+            WriteIni(QuickOptionsFile, "maxFps", "260")
+            WriteIni(QuickOptionsFile, "particles", "all")
+            WriteIni(QuickOptionsFile, "guiScale", "0")
+            WriteIni(QuickOptionsFile, "sensitivity", "0.50")
+            WriteIni(QuickOptionsFile, "fov", "70")
+            WriteIni(QuickOptionsFile, "bobView", "true")
+            WriteIni(QuickOptionsFile, "autoJump", "false")
+            WriteIni(QuickOptionsFile, "graphics", "fancy")
+            IniClearCache(QuickOptionsFile)
+        Finally
+            IsLoadingQuick = False
+        End Try
+        LoadQuickOptions()
+        LabQuickStatus.Text = "已恢复默认值，下次启动游戏生效"
+    End Sub
+
+#End Region
 
 #Region "游戏内存"
 
