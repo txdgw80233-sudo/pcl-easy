@@ -67,11 +67,89 @@ Public Module EasyAi
         End Get
     End Property
 
-    Public ReadOnly Property ModelUrl As String
+    Public ReadOnly Property ModelUrls As String()
         Get
-            Return If(UseSmallModel(), ModelUrlLow, ModelUrlStd)
+            Dim Name As String = If(UseSmallModel(), "qwen2.5-0.5b-instruct-q4_k_m.gguf", "qwen2.5-1.5b-instruct-q4_k_m.gguf")
+            Dim Repo As String = If(UseSmallModel(), "Qwen/Qwen2.5-0.5B-Instruct-GGUF", "Qwen/Qwen2.5-1.5B-Instruct-GGUF")
+            Return {
+                "https://modelscope.cn/models/" & Repo & "/resolve/master/" & Name,
+                "https://hf-mirror.com/" & Repo & "/resolve/main/" & Name,
+                "https://huggingface.co/" & Repo & "/resolve/main/" & Name
+            }
         End Get
     End Property
+
+    Public ReadOnly Property RuntimeUrls As String()
+        Get
+            Const GitHub As String = "https://github.com/ggml-org/llama.cpp/releases/download/b12809/llama-b12809-bin-win-cpu-x64.zip"
+            Return {
+                "https://gh-proxy.com/" & GitHub,
+                "https://ghproxy.net/" & GitHub,
+                GitHub
+            }
+        End Get
+    End Property
+
+    Private Function ProbeSpeed(Url As String, Optional BytesToRead As Integer = 262144, Optional TimeoutMs As Integer = 5000) As Double
+        Dim Watch As Stopwatch = Stopwatch.StartNew()
+        Try
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 Or SecurityProtocolType.Tls11
+            Dim Request = CType(WebRequest.Create(Url), HttpWebRequest)
+            Request.Proxy = Nothing
+            Request.Timeout = TimeoutMs
+            Request.ReadWriteTimeout = TimeoutMs
+            Request.AddRange(0, BytesToRead - 1)
+            Request.UserAgent = "PCL-AI"
+            Dim Total As Long = 0
+            Using Response = CType(Request.GetResponse(), HttpWebResponse)
+                Using Stream = Response.GetResponseStream()
+                    Dim Buffer(65535) As Byte
+                    Do
+                        Dim Read = Stream.Read(Buffer, 0, Buffer.Length)
+                        If Read <= 0 Then Exit Do
+                        Total += Read
+                        If Total >= BytesToRead OrElse Watch.ElapsedMilliseconds >= TimeoutMs Then Exit Do
+                    Loop
+                End Using
+            End Using
+            Watch.Stop()
+            If Watch.ElapsedMilliseconds <= 0 Then Return 0
+            Return Total / 1024.0 / (Watch.ElapsedMilliseconds / 1000.0)
+        Catch ex As Exception
+            Return 0
+        End Try
+    End Function
+
+    Public Function RankBySpeed(Urls As String()) As String()
+        Dim Scores As New List(Of KeyValuePair(Of String, Double))
+        For Each Url In Urls
+            Dim Speed = ProbeSpeed(Url)
+            Logger.Info($"[AI] 测速 {Speed:F0} KB/s：{Url}")
+            Scores.Add(New KeyValuePair(Of String, Double)(Url, Speed))
+        Next
+        Return Scores.OrderByDescending(Function(K) K.Value).Select(Function(K) K.Key).ToArray()
+    End Function
+
+    Public Sub DownloadWithFallback(Urls As String(), Target As String, OnProgress As Action(Of Long, Long), Optional Ranked As Boolean = False)
+        Dim Order As String() = If(Ranked, Urls, RankBySpeed(Urls))
+        Dim LastError As Exception = Nothing
+        For Each Url In Order
+            Try
+                Logger.Info("[AI] 开始从该源下载：" & Url)
+                DownloadFile(Url, Target, OnProgress)
+                Logger.Info("[AI] 下载成功：" & Url)
+                Return
+            Catch ex As Exception
+                LastError = ex
+                Logger.Warn("[AI] 该源下载失败，换下一个：" & Url & "；" & ex.Message)
+                Try
+                    If File.Exists(Target & ".part") Then File.Delete(Target & ".part")
+                Catch
+                End Try
+            End Try
+        Next
+        Throw New Exception("所有下载源都失败了：" & If(LastError Is Nothing, "未知原因", LastError.Message))
+    End Sub
 
     Public Function RuntimeReady() As Boolean
         Return File.Exists(RuntimeExe)
@@ -123,7 +201,7 @@ Public Module EasyAi
 
     Public Sub InstallRuntime(OnProgress As Action(Of Long, Long))
         Dim ZipFilePath As String = AiFolder & "runtime.zip"
-        DownloadFile(RuntimeUrl, ZipFilePath, OnProgress)
+        DownloadWithFallback(RuntimeUrls, ZipFilePath, OnProgress)
         IO.Compression.ZipFile.ExtractToDirectory(ZipFilePath, AiFolder)
         File.Delete(ZipFilePath)
         '有的版本把 exe 放在 bin 子目录里
@@ -135,7 +213,7 @@ Public Module EasyAi
     End Sub
 
     Public Sub InstallModel(OnProgress As Action(Of Long, Long))
-        DownloadFile(ModelUrl, ModelPath, OnProgress)
+        DownloadWithFallback(ModelUrls, ModelPath, OnProgress)
     End Sub
 
     Public Function IsGameRunning() As Boolean
