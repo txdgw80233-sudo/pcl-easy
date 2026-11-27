@@ -280,6 +280,7 @@
       <DependentUpon>PageDownloadMod.xaml</DependentUpon>
     </Compile>
     <Compile Include="Windows\AiChat.vb" />
+    <Compile Include="Windows\AiSettings.vb" />
     <Compile Include="Pages\PageDownload\PageEasyInstall.xaml.vb">
       <DependentUpon>PageEasyInstall.xaml</DependentUpon>
     </Compile>
