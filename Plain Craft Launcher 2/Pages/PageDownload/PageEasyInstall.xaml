@@ -9,6 +9,17 @@
             <TextBlock x:Name="LabTitle" Text="想玩点什么？" FontSize="25" Margin="0,10,0,6" />
             <TextBlock Text="选一个就行，剩下的交给我。" Opacity="0.65" Margin="0,0,0,18" />
 
+            <local:MyCard Title="先解释一下：为什么要下载游戏？" Margin="0,0,0,15">
+                <StackPanel Margin="25,42,25,18">
+                    <TextBlock TextWrapping="Wrap" LineHeight="22" Opacity="0.85"
+                               Text="游戏本体的文件本来不在你的电脑上，所以要先把它们下载下来，启动器才能用这些文件开游戏。这就是「下载」页在做的事。" />
+                    <TextBlock TextWrapping="Wrap" LineHeight="22" Opacity="0.85" Margin="0,10,0,0"
+                               Text="下载的都是官方游戏文件（和你选的模组、光影），只会放进你指定的游戏文件夹，不会乱动电脑里的其他东西。" />
+                    <TextBlock TextWrapping="Wrap" LineHeight="22" Opacity="0.85" Margin="0,10,0,0"
+                               Text="同一个版本下载一次就够了；以后想玩，直接点「启动游戏」，不用再下载。" />
+                </StackPanel>
+            </local:MyCard>
+
             <local:MyCard x:Name="CardMode" Title="第一步 · 选择玩法" Margin="0,0,0,15">
                 <StackPanel Margin="25,42,25,18">
                     <local:MyListItem x:Name="ItemVanilla" Type="RadioBox" Height="58" Margin="0,0,0,8"

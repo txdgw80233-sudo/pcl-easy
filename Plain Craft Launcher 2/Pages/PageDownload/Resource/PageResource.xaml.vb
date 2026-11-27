@@ -1,4 +1,4 @@
-Imports System.Windows.Markup
+﻿Imports System.Windows.Markup
 
 <ContentProperty("SearchTags")>
 Public Class PageResource
@@ -56,6 +56,7 @@ Public Class PageResource
             If _Type = Value Then Return
             _Type = Value
             BtnSearchInstallModPack.Visibility = If(Value = ResourceTypes.ModPack AndAlso Not RestrictMcDownload, Visibility.Visible, Visibility.Collapsed)
+            If TextIntro IsNot Nothing Then ApplyIntro()
         End Set
     End Property
     Private _Type As ResourceTypes = -1
@@ -77,6 +78,7 @@ Public Class PageResource
     Public Loader As LoaderTask(Of ResourceSearcher.SearchRequest, Integer) = ResourceSearcher.GetLoader(AddressOf LoaderInput)
 
     Private Sub PageResource_Loaded(sender As Object, e As EventArgs) Handles Me.Loaded
+        ApplyIntro()
         Static IsFirstLoaded As Boolean = False
         '不知道从 Initialized 改成 Loaded 会不会有问题，但用 Initialized 会导致初始的筛选器修改被覆盖回默认值
         If TargetInstance IsNot Nothing Then
@@ -261,6 +263,34 @@ Public Class PageResource
     '安装已有整合包按钮
     Private Sub BtnSearchInstallModPack_Click(sender As Object, e As EventArgs) Handles BtnSearchInstallModPack.Click
         ModpackInstall()
+    End Sub
+
+    '小白说明
+    Private Sub ApplyIntro()
+        If TextIntro Is Nothing Then Return
+        Select Case PageType
+            Case ResourceTypes.Mod
+                TextIntro.Text = "Mod（模组）是给游戏加内容的小插件：可以加新物品、新生物、新地图，也可以让游戏更流畅。" & vbCrLf &
+                    "为什么要装：原版玩腻了想加新内容，或者电脑玩起来有点卡（装优化类 Mod）。" & vbCrLf &
+                    "怎么用：装好之后，在「启动」页选对应版本进游戏就会生效。" & vbCrLf &
+                    "注意：Mod 必须和游戏版本、加载器（Fabric/Forge）对得上，下错版本游戏会打不开；装之前建议先备份存档。"
+            Case ResourceTypes.Shader
+                TextIntro.Text = "光影（光影包）是给画面加一层「滤镜」：让光线、水面、云和阴影更好看。它只改画面，不改玩法。" & vbCrLf &
+                    "为什么要装：想让游戏更好看、截图更漂亮。" & vbCrLf &
+                    "怎么用：需要先装 Iris 或 OptiFine，装好后在游戏里 选项 → 视频设置 → 光影 里选。" & vbCrLf &
+                    "装光影对显卡要求高，装之前先看下面的提示。"
+            Case ResourceTypes.ModPack
+                TextIntro.Text = "整合包是把几十个 Mod、配置和剧情预先搭配好的一整套游戏，下载解压后就能直接玩，适合不想自己一个个挑 Mod 的人。" & vbCrLf &
+                    "注意：整合包通常要占几个 GB 磁盘空间，装之前先确认硬盘够用。"
+            Case ResourceTypes.ResourcePack
+                TextIntro.Text = "资源包只改游戏的外观和声音（材质、音乐、字体），不改玩法和规则。" & vbCrLf &
+                    "装好之后在游戏里 选项 → 资源包 里启用。"
+            Case ResourceTypes.DataPack
+                TextIntro.Text = "数据包改的是游戏规则、配方、战利品这些内容，一般装进某个存档里，只影响那个世界。"
+            Case Else
+                TextIntro.Text = "这里可以下载社区制作的 Mod、整合包、资源包、数据包和光影。"
+        End Select
+        HintShaderWarn.Visibility = If(PageType = ResourceTypes.Shader, Visibility.Visible, Visibility.Collapsed)
     End Sub
 
 End Class

@@ -1,4 +1,4 @@
-<local:MyScrollViewer x:Class="PageResource"
+﻿<local:MyScrollViewer x:Class="PageResource"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -7,6 +7,13 @@
       mc:Ignorable="d" 
       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Orientation="Vertical" Margin="25">
+        <local:MyCard Title="这是什么？" Margin="0,0,0,15" x:Name="CardIntro">
+            <StackPanel Margin="25,42,25,18">
+                <TextBlock x:Name="TextIntro" TextWrapping="Wrap" LineHeight="22" Opacity="0.85" />
+                <local:MyHint x:Name="HintShaderWarn" Theme="Yellow" Margin="0,12,0,0" Visibility="Collapsed"
+                              Text="注意：光影对电脑配置要求较高。普通办公本、老笔记本、没有独立显卡的电脑请不要安装，很容易卡顿甚至卡死。不确定的话先不装，游戏本身完全能正常玩。" />
+            </StackPanel>
+        </local:MyCard>
         <local:MyCard Title="搜索XXX" Margin="0,0,0,15" x:Name="PanAlways">
             <StackPanel Margin="25,40,25,15">
                 <Grid Margin="0,0,0,11" HorizontalAlignment="Stretch">
