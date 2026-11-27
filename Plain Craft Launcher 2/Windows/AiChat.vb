@@ -38,6 +38,13 @@ Namespace Windows
             FontFamily = New FontFamily("Microsoft YaHei UI, Segoe UI")
             FontSize = 13
             WindowStartupLocation = WindowStartupLocation.CenterOwner
+            '加载外置规则（不存在就先导出内置的，方便用户自己改）
+            Try
+                EasyAiRules.EnsureRulesFile()
+                EasyAiRules.ReloadRules()
+            Catch ex As Exception
+                Logger.Warn("[AI] 规则加载失败：" & ex.Message)
+            End Try
             BuildUi()
             AddHandler Loaded, AddressOf AiChat_Loaded
             AddHandler Closing, AddressOf AiChat_Closing
@@ -175,7 +182,8 @@ Namespace Windows
 
         Private Async Sub AiChat_Loaded(sender As Object, e As RoutedEventArgs)
             AddBubble("你好，我是启动器自带的答疑助手。" & vbCrLf &
-                      "常见报错会用内置规则直接回答（不用下载模型）；其它问题由本地小模型回答，完全在你电脑上跑，不联网。" & vbCrLf &
+                      "常见报错会先用内置规则直接回答（现在有 " & EasyAiRules.RuleCount() & " 条，" & EasyAiRules.RulesSource & "，不用下载模型）；" & vbCrLf &
+                      "其它问题由本地小模型回答，完全在你电脑上跑，不联网。" & vbCrLf &
                       "可以问我：怎么装游戏、报错是什么意思、这个按钮干什么的、推荐装什么模组或光影。", False)
             Await RefreshStateAsync()
         End Sub
@@ -251,7 +259,7 @@ Namespace Windows
             Dim Question = TxtInput.Text.Trim()
             If Question = "" Then Exit Sub
             '先从内置规则库找答案：命中就直接回答，不需要启动本地模型
-            Dim Rule As EasyAiRules.AiRule = EasyAiRules.Match(Question)
+            Dim Rule As EasyAiRules.AiRule = EasyAiRules.MatchRule(Question)
             If Rule IsNot Nothing Then
                 TxtInput.Text = ""
                 AddBubble(Question, True)

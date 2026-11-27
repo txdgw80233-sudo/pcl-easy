@@ -1,5 +1,7 @@
 ﻿Imports System.Collections.Generic
 Imports System.Text
+Imports Newtonsoft.Json.Linq
+Imports System.IO
 
 ''' <summary>
 ''' 内置的“报错 → 人话解释 + 修复步骤”规则库。命中就直接回答，不走本地模型。
@@ -12,14 +14,89 @@ Public Module EasyAiRules
         Public Answer As String
     End Class
 
-    Public ReadOnly Rules As List(Of AiRule) = BuildRules()
+    ''' <summary>
+    ''' 规则文件位置：启动器目录\rules\ai_rules.json，可以用记事本改，改完重开 AI 窗口生效。
+    ''' </summary>
+    Public ReadOnly Property RulesFilePath As String
+        Get
+            Return IO.Path.Combine(Paths.Base, "rules\ai_rules.json")
+        End Get
+    End Property
+
+    Private Loaded As List(Of AiRule) = BuildRules()
+    Private LoadedSource As String = "内置"
+
+    ''' <summary>
+    ''' 当前规则的来源：外置 JSON 或内置。
+    ''' </summary>
+    Public ReadOnly Property RulesSource As String
+        Get
+            Return LoadedSource
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' 如果还没有规则文件，就把内置的 50 条导出成 JSON，方便用户自己改。
+    ''' </summary>
+    Public Sub EnsureRulesFile()
+        Try
+            Dim Folder As String = IO.Path.GetDirectoryName(RulesFilePath)
+            If Not IO.Directory.Exists(Folder) Then IO.Directory.CreateDirectory(Folder)
+            If IO.File.Exists(RulesFilePath) Then Exit Sub
+            IO.File.WriteAllText(RulesFilePath, BuildJson(BuildRules()), New UTF8Encoding(True))
+            Logger.Info("[AI] 已生成外置规则文件：" & RulesFilePath)
+        Catch ex As Exception
+            Logger.Warn("[AI] 生成规则文件失败：" & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 重新读取外置规则；文件不存在或格式错就退回内置规则。
+    ''' </summary>
+    Public Sub ReloadRules()
+        Try
+            If Not IO.File.Exists(RulesFilePath) Then
+                Loaded = BuildRules()
+                LoadedSource = "内置"
+                Logger.Info("[AI] 未找到外置规则，使用内置 " & Loaded.Count & " 条")
+                Exit Sub
+            End If
+            Dim Text As String = IO.File.ReadAllText(RulesFilePath, Encoding.UTF8)
+            Dim Root = JObject.Parse(Text)
+            Dim Arr = Root("rules")
+            If Arr Is Nothing OrElse Arr.Type <> JTokenType.Array Then Throw New Exception("缺少 rules 数组")
+            Dim List As New List(Of AiRule)
+            For Each Item As JObject In Arr
+                Dim Rule As New AiRule With {
+                    .Title = If(Item("title") Is Nothing, "", Item("title").ToString()),
+                    .Answer = NormalizeAnswer(If(Item("answer") Is Nothing, "", Item("answer").ToString()))
+                }
+                Dim Keys As New List(Of String)
+                If Item("keys") IsNot Nothing Then
+                    For Each K As JValue In Item("keys")
+                        If K.Value IsNot Nothing Then Keys.Add(K.Value.ToString())
+                    Next
+                End If
+                Rule.Keys = Keys.ToArray()
+                If Rule.Keys.Length > 0 AndAlso Rule.Answer <> "" Then List.Add(Rule)
+            Next
+            If List.Count = 0 Then Throw New Exception("规则数组是空的")
+            Loaded = List
+            LoadedSource = "外置"
+            Logger.Info("[AI] 已加载外置规则 " & List.Count & " 条：" & RulesFilePath)
+        Catch ex As Exception
+            Loaded = BuildRules()
+            LoadedSource = "内置"
+            Logger.Warn("[AI] 外置规则读取失败，改用内置：" & ex.Message)
+        End Try
+    End Sub
 
     ''' <summary>
     ''' 按关键词匹配，返回第一条命中的规则；没有命中返回 Nothing。
     ''' </summary>
-    Public Function Match(Text As String) As AiRule
+    Public Function MatchRule(Text As String) As AiRule
         If String.IsNullOrWhiteSpace(Text) Then Return Nothing
-        For Each R As AiRule In Rules
+        For Each R As AiRule In Loaded
             For Each K As String In R.Keys
                 If Text.IndexOf(K, StringComparison.OrdinalIgnoreCase) >= 0 Then Return R
             Next
@@ -27,8 +104,27 @@ Public Module EasyAiRules
         Return Nothing
     End Function
 
-    Public Function Count() As Integer
-        Return Rules.Count
+    Public Function RuleCount() As Integer
+        Return Loaded.Count
+    End Function
+
+    Private Function NormalizeAnswer(Text As String) As String
+        Return Text.Replace(vbCrLf, vbLf).Replace("\n", vbLf).Replace(vbLf, vbCrLf)
+    End Function
+
+    Private Function BuildJson(List As List(Of AiRule)) As String
+        Dim Root As New JObject()
+        Root("version") = 1
+        Dim Arr As New JArray()
+        For Each R As AiRule In List
+            Dim Item As New JObject()
+            Item("title") = R.Title
+            Item("keys") = New JArray(R.Keys)
+            Item("answer") = R.Answer
+            Arr.Add(Item)
+        Next
+        Root("rules") = Arr
+        Return Root.ToString()
     End Function
 
     Private Function BuildRules() As List(Of AiRule)

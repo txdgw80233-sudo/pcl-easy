@@ -17,7 +17,7 @@ Namespace Windows
         Public Sub New()
             Title = "AI 答疑设置"
             Width = 560
-            Height = 420
+            Height = 540
             ResizeMode = ResizeMode.NoResize
             WindowStartupLocation = WindowStartupLocation.CenterOwner
             Background = New SolidColorBrush(Color.FromRgb(&HF9, &HFA, &HFC))
@@ -94,6 +94,32 @@ Namespace Windows
                 .Margin = New Thickness(0, 6, 0, 12)
             }
             Root.Children.Add(Risk)
+
+            '规则文件信息
+            Dim RuleInfo As New TextBlock With {
+                .Text = "内置规则：" & EasyAiRules.RuleCount() & " 条（当前来源：" & EasyAiRules.RulesSource & "）" & vbCrLf &
+                        "规则文件：" & EasyAiRules.RulesFilePath,
+                .TextWrapping = TextWrapping.Wrap,
+                .Foreground = New SolidColorBrush(Color.FromRgb(&H66, &H66, &H66)),
+                .Margin = New Thickness(0, 0, 0, 6)
+            }
+            Root.Children.Add(RuleInfo)
+            Dim BtnRules As New Button With {
+                .Content = "打开规则文件（可自己加条目）",
+                .HorizontalAlignment = HorizontalAlignment.Left,
+                .Padding = New Thickness(12, 4, 12, 4),
+                .Margin = New Thickness(0, 0, 0, 14),
+                .Cursor = System.Windows.Input.Cursors.Hand
+            }
+            AddHandler BtnRules.Click, Sub(s, e)
+                                           Try
+                                               EasyAiRules.EnsureRulesFile()
+                                               System.Diagnostics.Process.Start("explorer.exe", "/select,""" & EasyAiRules.RulesFilePath & """")
+                                           Catch ex As Exception
+                                               MsgBox("打开规则文件失败：" & ex.Message, MsgBoxStyle.OkOnly, "AI 答疑")
+                                           End Try
+                                       End Sub
+            Root.Children.Add(BtnRules)
 
             Dim Ok As New Button With {
                 .Content = "确定",
