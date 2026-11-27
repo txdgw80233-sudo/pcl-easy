@@ -201,6 +201,15 @@
     End Sub
 
     '导出诊断包
+    Private Sub BtnToolboxCmds_Click(sender As Object, e As MouseButtonEventArgs)
+        Try
+            Windows.CommandStudio.ToggleStudio()
+        Catch ex As Exception
+            Logger.Error(ex, "打开指令工坊失败")
+            Hint("指令工坊打不开：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
     Private Sub BtnToolboxAi_Click(sender As Object, e As MouseButtonEventArgs)
         Try
             Dim Window As New Windows.AiChat With {.Owner = FrmMain}

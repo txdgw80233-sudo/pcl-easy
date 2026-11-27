@@ -719,6 +719,8 @@
     <Compile Include="Modules\Base\MyBitmap.vb" />
     <Compile Include="Modules\ModMain.vb" />
     <Compile Include="Modules\EasyMemory.vb" />
+    <Compile Include="Modules\EasyCmds.vb" />
+    <Compile Include="Windows\CommandStudio.vb" />
     <Compile Include="Modules\EasyAi.vb" />
     <Compile Include="Modules\EasyAiRules.vb" />
     <Compile Include="Modules\Base\ModBase.vb" />
