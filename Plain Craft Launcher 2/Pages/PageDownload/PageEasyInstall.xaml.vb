@@ -329,11 +329,33 @@
     End Sub
 
     '版本已经可用：按钮切换成「启动游戏」，并给 Fabric 用户提示优化 Mod
+    '让新装的游戏默认就是中文
+    Private Sub EnsureChineseLanguage(Folder As String)
+        Dim OptionsPath As String = Folder & "options.txt"
+        If FileUtils.Exists(OptionsPath) Then Return
+        Dim Major As Integer = 99
+        If VanillaName IsNot Nothing Then
+            Dim Parts As String() = VanillaName.Split("."c)
+            If Parts.Length >= 2 AndAlso IsNumeric(Parts(0)) AndAlso CInt(Parts(0)) = 1 AndAlso IsNumeric(Parts(1)) Then
+                Major = CInt(Parts(1))
+            End If
+        End If
+        '1.0 ~ 1.10 的最后两位字母必须大写，否则游戏会 NPE 崩溃；1.11 之后必须小写
+        Dim Lang As String = If(Major <= 10, "zh_CN", "zh_cn")
+        FileUtils.Write(OptionsPath, "lang:" & Lang & vbCrLf & "forceUnicodeFont:true" & vbCrLf)
+        Logger.Info($"已为新版本写入默认语言：{Lang}")
+    End Sub
+
     Private Sub MarkInstalled(Folder As String, Message As String)
         InstallDone = True
         InstalledFolder = Folder
         BtnInstall.Text = " 启动游戏"
         LabStatus.Text = Message
+        Try
+            EnsureChineseLanguage(Folder)
+        Catch ex As Exception
+            Logger.Warn(ex, "写入默认语言失败")
+        End Try
         If SelectedMode = ModeType.Modded AndAlso SelectedLoader = LoaderType.Fabric Then
             CardOptimize.Visibility = Visibility.Visible
             LabOptimizeStatus.Text = "装好这三个，游戏会明显更顺畅。点「一键装好」就行，不用你找文件。"

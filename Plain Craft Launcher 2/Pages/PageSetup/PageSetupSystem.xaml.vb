@@ -1,4 +1,4 @@
-Public Class PageSetupSystem
+﻿Public Class PageSetupSystem
 
 
     Private Sub PageSetupSystem_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
@@ -126,6 +126,123 @@ Public Class PageSetupSystem
     End Sub
     Private Sub BtnSystemSettingImp_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnSystemSettingImp.Click
         Hint("该功能尚在开发中！")
+    End Sub
+
+#End Region
+
+#Region "百宝箱"
+
+    '选一个能写进去的导出位置：桌面优先，不行就放到游戏文件夹里
+    Private Function GetExportFolder() As String
+        Try
+            Dim Desktop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+            If Not String.IsNullOrWhiteSpace(Desktop) AndAlso IO.Directory.Exists(Desktop) Then
+                Dim TestFile As String = IO.Path.Combine(Desktop, ".pcl_write_test")
+                IO.File.WriteAllText(TestFile, "test")
+                IO.File.Delete(TestFile)
+                Return Desktop
+            End If
+        Catch
+        End Try
+        Dim Fallback As String = McFolderSelected & "PCL导出\"
+        IO.Directory.CreateDirectory(Fallback)
+        Return Fallback
+    End Function
+
+    Private Sub ToolboxStatus(Text As String)
+        Try
+            LabToolboxStatus.Text = Text
+        Catch
+        End Try
+    End Sub
+
+    '打开游戏文件夹
+    Private Sub BtnToolboxOpenFolder_Click(sender As Object, e As MouseButtonEventArgs)
+        Try
+            Diagnostics.Process.Start("explorer.exe", """" & McFolderSelected & """")
+            ToolboxStatus("已打开：" & McFolderSelected)
+        Catch ex As Exception
+            Hint("打开游戏文件夹失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    '备份存档
+    Private Sub BtnToolboxBackup_Click(sender As Object, e As MouseButtonEventArgs)
+        Try
+            Dim SavesPath As String = McFolderSelected & "saves\"
+            If Not IO.Directory.Exists(SavesPath) Then
+                Hint("这个文件夹里还没有存档，进游戏建一个世界后再来备份吧。", HintType.Blue)
+                Return
+            End If
+            Dim Files As New Dictionary(Of String, String)
+            For Each FilePath As String In IO.Directory.GetFiles(SavesPath, "*", IO.SearchOption.AllDirectories)
+                Files("saves\" & FilePath.Substring(SavesPath.Length)) = FilePath
+            Next
+            If Files.Count = 0 Then
+                Hint("存档文件夹是空的，没有需要备份的内容。", HintType.Blue)
+                Return
+            End If
+            Dim Target As String = IO.Path.Combine(GetExportFolder(), $"MC存档备份_{Now:yyyyMMdd_HHmmss}.zip")
+            ToolboxStatus("正在备份 " & Files.Count & " 个文件……")
+            FileUtils.CreateZipFromFiles(Target, Files)
+            Hint("存档已备份：" & Target, HintType.Green)
+            ToolboxStatus("备份完成：" & Target)
+        Catch ex As Exception
+            Hint("备份存档失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    '清理日志
+    Private Sub BtnToolboxCleanLogs_Click(sender As Object, e As MouseButtonEventArgs)
+        If MyMsgBox("会删除游戏文件夹里的日志和崩溃报告，不会动存档和 Mod。确定清理吗？", "清理日志", "取消", "清理") <> 2 Then Return
+        Try
+            Dim Count As Integer = 0
+            For Each Folder As String In {"logs\", "crash-reports\"}
+                Dim FullPath As String = McFolderSelected & Folder
+                If Not IO.Directory.Exists(FullPath) Then Continue For
+                For Each FilePath As String In IO.Directory.GetFiles(FullPath)
+                    Try
+                        IO.File.Delete(FilePath)
+                        Count += 1
+                    Catch
+                    End Try
+                Next
+            Next
+            ToolboxStatus($"已清理 {Count} 个日志文件。")
+            Hint($"清理完成，共删除了 {Count} 个文件。", HintType.Green)
+        Catch ex As Exception
+            Hint("清理日志失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    '导出诊断包
+    Private Sub BtnToolboxDiag_Click(sender As Object, e As MouseButtonEventArgs)
+        Try
+            Dim Files As New Dictionary(Of String, String)
+            CollectFiles(McFolderSelected & "logs\", "logs", Files)
+            CollectFiles(McFolderSelected & "crash-reports\", "crash-reports", Files)
+            If IO.File.Exists(McFolderSelected & "PCL.ini") Then Files("PCL.ini") = McFolderSelected & "PCL.ini"
+            Dim SetupPath As String = Paths.Base & "PCL\Setup.ini"
+            If IO.File.Exists(SetupPath) Then Files("Setup.ini") = SetupPath
+            If Files.Count = 0 Then
+                Hint("没有找到日志文件，先启动一次游戏再来导出。", HintType.Blue)
+                Return
+            End If
+            Dim Target As String = IO.Path.Combine(GetExportFolder(), $"PCL诊断包_{Now:yyyyMMdd_HHmmss}.zip")
+            ToolboxStatus("正在打包 " & Files.Count & " 个文件……")
+            FileUtils.CreateZipFromFiles(Target, Files)
+            Hint("诊断包已导出：" & Target & "，遇到问题可以把它发给我。", HintType.Green)
+            ToolboxStatus("导出完成：" & Target)
+        Catch ex As Exception
+            Hint("导出诊断包失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    Private Sub CollectFiles(Folder As String, Prefix As String, Files As Dictionary(Of String, String))
+        If Not IO.Directory.Exists(Folder) Then Return
+        For Each FilePath As String In IO.Directory.GetFiles(Folder, "*", IO.SearchOption.AllDirectories)
+            Files(Prefix & "\" & FilePath.Substring(Folder.Length)) = FilePath
+        Next
     End Sub
 
 #End Region
