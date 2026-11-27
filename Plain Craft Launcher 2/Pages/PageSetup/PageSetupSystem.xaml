@@ -205,6 +205,7 @@
                         <local:MyButton Text=" 清理日志" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxCleanLogs_Click" />
                         <local:MyButton Text=" 导出诊断包" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxDiag_Click" />
                         <local:MyButton Text=" 清理内存" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxMemory_Click" />
+                        <local:MyButton Text=" AI 答疑" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxAi_Click" ToolTip="内置本地小模型，问游戏教程、报错原因、功能位置，不用联网" />
                     </WrapPanel>
                     <TextBlock x:Name="LabToolboxStatus" TextWrapping="Wrap" Opacity="0.65" Margin="0,4,0,0" />
                 </StackPanel>

@@ -279,6 +279,7 @@
     <Compile Include="Pages\PageDownload\Resource\PageDownloadMod.xaml.vb">
       <DependentUpon>PageDownloadMod.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Windows\AiChat.vb" />
     <Compile Include="Pages\PageDownload\PageEasyInstall.xaml.vb">
       <DependentUpon>PageEasyInstall.xaml</DependentUpon>
     </Compile>
@@ -717,6 +718,7 @@
     <Compile Include="Modules\Base\MyBitmap.vb" />
     <Compile Include="Modules\ModMain.vb" />
     <Compile Include="Modules\EasyMemory.vb" />
+    <Compile Include="Modules\EasyAi.vb" />
     <Compile Include="Modules\Base\ModBase.vb" />
     <Compile Include="My Project\AssemblyInfo.vb">
       <SubType>Code</SubType>

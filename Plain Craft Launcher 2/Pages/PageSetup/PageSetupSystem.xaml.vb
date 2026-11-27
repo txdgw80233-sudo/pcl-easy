@@ -201,6 +201,16 @@
     End Sub
 
     '导出诊断包
+    Private Sub BtnToolboxAi_Click(sender As Object, e As MouseButtonEventArgs)
+        Try
+            Dim Window As New Windows.AiChat With {.Owner = FrmMain}
+            Window.Show()
+        Catch ex As Exception
+            Logger.Error(ex, "打开 AI 答疑失败")
+            Hint("AI 答疑打不开：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
     Private Sub BtnToolboxMemory_Click(sender As Object, e As MouseButtonEventArgs)
         LabToolboxStatus.Text = "正在清理内存……"
         RunInNewThread(
