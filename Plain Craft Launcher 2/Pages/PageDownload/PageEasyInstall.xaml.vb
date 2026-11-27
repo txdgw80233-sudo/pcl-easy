@@ -36,6 +36,10 @@
     Private ReadOnly OptimizeSlugs As String() = {"sodium", "lithium", "fabric-api"}
     Private ReadOnly OptimizeNames As String() = {"Sodium（钠）", "Lithium（锂）", "Fabric API"}
 
+    '光影引导
+    Private ShaderBusy As Boolean = False
+    Private SelectedShader As String = "comp"
+
     Public Overridable Sub Init() Handles Me.Loaded
         If Not IsHooked Then
             IsHooked = True
@@ -93,6 +97,13 @@
             If Keep IsNot Nothing Then
                 For i = 0 To Releases.Count - 1
                     If Releases(i)("id").ToString = Keep Then Index = i
+                Next
+            End If
+            '测试用：PCL_EASY_VERSION 指定默认版本，正常使用不需要设置
+            Dim Pinned As String = Environment.GetEnvironmentVariable("PCL_EASY_VERSION")
+            If Not String.IsNullOrWhiteSpace(Pinned) Then
+                For i = 0 To Releases.Count - 1
+                    If Releases(i)("id").ToString = Pinned.Trim Then Index = i
                 Next
             End If
             ComboVersion.SelectedIndex = Index
@@ -326,6 +337,9 @@
         If SelectedMode = ModeType.Modded AndAlso SelectedLoader = LoaderType.Fabric Then
             CardOptimize.Visibility = Visibility.Visible
             LabOptimizeStatus.Text = "装好这三个，游戏会明显更顺畅。点「一键装好」就行，不用你找文件。"
+            CardShaders.Visibility = Visibility.Visible
+            ItemShaderComp.SetChecked(True, True, False)
+            LabShaderStatus.Text = "想要更好看的画面，就点「一键开光影」，不用自己找光影包。"
         End If
     End Sub
 
@@ -345,19 +359,8 @@
                     Dim ModName As String = OptimizeNames(Index)
                     Try
                         RunInUi(Sub() LabOptimizeStatus.Text = "正在下载 " & ModName & "……（" & (Index + 1) & "/" & OptimizeSlugs.Length & "）")
-                        Dim Url As String = "https://api.modrinth.com/v2/project/" & OptimizeSlugs(Index) &
-                            "/version?game_versions=%5B%22" & VanillaName & "%22%5D&loaders=%5B%22fabric%22%5D"
-                        Dim Raw As String = NetRequestByClientRetry(Url, RequireJson:=True)
-                        Dim VersionList As JArray = JArray.Parse(Raw)
-                        If VersionList.Count = 0 Then Throw New Exception("没有找到适配 " & VanillaName & " 的版本")
-                        Dim Files = VersionList(0)("files")
-                        If Files Is Nothing OrElse Files.Count = 0 Then Throw New Exception("没有可下载的文件")
-                        Dim FileUrl As String = Files(0)("url").ToString
-                        Dim FileName As String = Files(0)("filename").ToString
                         Dim TargetDir As String = InstalledFolder & "mods\"
-                        If Not FileUtils.Exists(TargetDir & FileName) Then
-                            NetDownloadByClient(FileUrl, TargetDir & FileName)
-                        End If
+                        DownloadModrinthFile(OptimizeSlugs(Index), VanillaName, TargetDir, "fabric", OptimizeSlugs(Index) & "-")
                         SuccessCount += 1
                     Catch ex As Exception
                         Logger.Error(ex, "新手安装：下载优化 Mod 失败（" & ModName & "）")
@@ -386,6 +389,245 @@
     Private Sub BtnSkipOptimize_Click(sender As Object, e As MouseButtonEventArgs)
         CardOptimize.Visibility = Visibility.Collapsed
         LabStatus.Text = "好的，想装的时候随时回来点「一键安装」页就行。"
+    End Sub
+
+    '选择光影
+    Private Sub Shader_Click(sender As Object, e As MouseButtonEventArgs)
+        If sender Is ItemShaderBSL Then
+            SelectedShader = "bsl"
+        Else
+            SelectedShader = "comp"
+        End If
+    End Sub
+
+    '一键开光影
+    Private Sub BtnShader_Click(sender As Object, e As MouseButtonEventArgs)
+        If ShaderBusy Then Return
+        If InstalledFolder Is Nothing OrElse VanillaName Is Nothing Then Return
+        ShaderBusy = True
+        BtnShader.IsEnabled = False
+        BtnSkipShader.IsEnabled = False
+        RunInNewThread(
+            Sub()
+                Try
+                    Dim ModsDir As String = InstalledFolder & "mods\"
+                    '光影需要 Iris，Iris 又需要 Sodium；先把不兼容的 Sodium 换掉
+                    RunInUi(Sub() LabShaderStatus.Text = "正在装光影底座 Iris……")
+                    DownloadModrinthFile("iris", VanillaName, ModsDir, "fabric", "iris-")
+                    RunInUi(Sub() LabShaderStatus.Text = "正在装 Sodium……")
+                    DownloadModrinthFile("sodium", VanillaName, ModsDir, "fabric", "sodium-", ReplaceOthers:=True)
+                    '检查 Iris 和 Sodium 能不能一起用（不兼容的话游戏会起不来）
+                    RunInUi(Sub() LabShaderStatus.Text = "正在检查光影能不能用……")
+                    Dim CompatMessage As String = CheckShaderCompat()
+                    If CompatMessage IsNot Nothing Then
+                        If Directory.Exists(ModsDir) Then
+                            For Each BadIris As String In Directory.GetFiles(ModsDir, "iris-*.jar")
+                                File.Delete(BadIris)
+                            Next
+                        End If
+                        RunInUi(
+                            Sub()
+                                ShaderBusy = False
+                                BtnShader.IsEnabled = False
+                                BtnShader.Text = " 这个版本还不行"
+                                BtnSkipShader.Visibility = Visibility.Collapsed
+                                LabShaderStatus.Text = CompatMessage
+                            End Sub)
+                        Return
+                    End If
+                    RunInUi(Sub() LabShaderStatus.Text = "正在装 Fabric API……")
+                    DownloadModrinthFile("fabric-api", VanillaName, ModsDir, "fabric", "fabric-api-")
+                    '光影包
+                    Dim ShaderSlug As String = If(SelectedShader = "bsl", "bsl-shaders", "complementary-reimagined")
+                    Dim ShaderName As String = If(SelectedShader = "bsl", "BSL", "Complementary Reimagined")
+                    RunInUi(Sub() LabShaderStatus.Text = "正在下载光影 " & ShaderName & "……")
+                    Dim ShaderFile As String = DownloadModrinthFile(ShaderSlug, VanillaName, InstalledFolder & "shaderpacks\", "iris", Nothing)
+                    '让 Iris 默认开启这套光影
+                    WriteIrisConfig(ShaderFile)
+                    RunInUi(
+                        Sub()
+                            ShaderBusy = False
+                            BtnShader.Text = " 已开好"
+                            BtnSkipShader.Visibility = Visibility.Collapsed
+                            LabShaderStatus.Text = "光影开好了！点上面的「启动游戏」进去就是开着的。如果觉得卡，进游戏按 Esc → 选项 → 视频设置 → 光影，关掉就行。"
+                        End Sub)
+                Catch ex As Exception
+                    Logger.Error(ex, "新手安装：开光影失败")
+                    RunInUi(
+                        Sub()
+                            ShaderBusy = False
+                            BtnShader.IsEnabled = True
+                            BtnSkipShader.IsEnabled = True
+                            BtnShader.Text = " 再试一次"
+                            LabShaderStatus.Text = "没装成：" & ex.Message & "。多半是网络问题，可以再点一次。"
+                        End Sub)
+                End Try
+            End Sub)
+    End Sub
+
+    '先不装光影
+    Private Sub BtnSkipShader_Click(sender As Object, e As MouseButtonEventArgs)
+        CardShaders.Visibility = Visibility.Collapsed
+    End Sub
+
+    '从 Modrinth 下载最新匹配文件，返回文件名；已有同前缀文件就跳过
+    Private Function DownloadModrinthFile(Slug As String, GameVersion As String, TargetDir As String, Loader As String, Optional FilePrefix As String = Nothing, Optional ForceDownload As Boolean = False, Optional ReplaceOthers As Boolean = False) As String
+        Dim Url As String = "https://api.modrinth.com/v2/project/" & Slug &
+            "/version?game_versions=%5B%22" & Uri.EscapeDataString(GameVersion) & "%22%5D&loaders=%5B%22" & Loader & "%22%5D"
+        Dim VersionList As JArray = JArray.Parse(NetRequestByClientRetry(Url, RequireJson:=True))
+        If VersionList.Count = 0 Then Throw New Exception("Modrinth 上没有适配 " & GameVersion & " 的版本")
+        '优先正式版，避免 beta 版和别的东西打架
+        Dim Picked As JObject = VersionList(0)
+        For Each One As JObject In VersionList
+            If One("version_type")?.ToString = "release" Then
+                Picked = One
+                Exit For
+            End If
+        Next
+        Dim Files = Picked("files")
+        If Files Is Nothing OrElse Files.Count = 0 Then Throw New Exception("这个版本没有可下载的文件")
+        Dim FileUrl As String = Files(0)("url").ToString
+        Dim FileName As String = Files(0)("filename").ToString
+        '已经是这个版本就不用重复下载
+        If Not ForceDownload AndAlso FileUtils.Exists(TargetDir & FileName) Then Return FileName
+        '网络偶尔抽风，最多试 3 次
+        For Attempt As Integer = 1 To 3
+            Try
+                If FileUtils.Exists(TargetDir & FileName) Then File.Delete(TargetDir & FileName)
+                NetDownloadByClient(FileUrl, TargetDir & FileName)
+                Exit For
+            Catch ex As Exception
+                If Attempt = 3 Then Throw
+                Logger.Error(ex, "新手安装：下载 " & FileName & " 失败，准备重试（" & Attempt & "/3）")
+                Thread.Sleep(1500)
+            End Try
+        Next
+        '新版下好了再删旧版，避免下载失败把能用的删掉
+        If ReplaceOthers AndAlso FilePrefix IsNot Nothing AndAlso Directory.Exists(TargetDir) Then
+            For Each OldFile As String In Directory.GetFiles(TargetDir, FilePrefix & "*.jar")
+                If IO.Path.GetFileName(OldFile) <> FileName Then File.Delete(OldFile)
+            Next
+        End If
+        Return FileName
+    End Function
+
+    '检查 Iris 和 Sodium 能不能一起用；不兼容就返回一句人话，能用就返回 Nothing
+    Private Function CheckShaderCompat() As String
+        Try
+            Dim ModsDir As String = InstalledFolder & "mods\"
+            Dim IrisJar As String = Nothing
+            Dim SodiumJar As String = Nothing
+            If Directory.Exists(ModsDir) Then
+                For Each F As String In Directory.GetFiles(ModsDir, "iris-*.jar")
+                    IrisJar = F
+                    Exit For
+                Next
+                For Each F As String In Directory.GetFiles(ModsDir, "sodium-*.jar")
+                    SodiumJar = F
+                    Exit For
+                Next
+            End If
+            If IrisJar Is Nothing OrElse SodiumJar Is Nothing Then Return Nothing
+            Dim IrisVer As String = IO.Path.GetFileName(IrisJar).Replace("iris-fabric-", "").Split("+"c)(0)
+            '从 Sodium 的 fabric.mod.json 里读它声明不兼容的 Iris 版本范围
+            Dim IrisRange As String = Nothing
+            Using Zip As ZipArchive = ZipFile.OpenRead(SodiumJar)
+                Dim Entry As ZipArchiveEntry = Zip.GetEntry("fabric.mod.json")
+                If Entry IsNot Nothing Then
+                    Using Reader As New StreamReader(Entry.Open())
+                        Dim Meta As JObject = JObject.Parse(Reader.ReadToEnd())
+                        Dim Breaks As JToken = Meta("breaks")
+                        If Breaks IsNot Nothing Then
+                            Dim Target As JToken = Breaks("iris")
+                            If Target IsNot Nothing Then IrisRange = Target.ToString()
+                        End If
+                    End Using
+                End If
+            End Using
+            If String.IsNullOrWhiteSpace(IrisRange) Then Return Nothing
+            IrisRange = IrisRange.Trim().Trim(""""c).Trim()
+            Dim Op As String = "="
+            For Each Candidate As String In {"<=", ">=", "<", ">", "="}
+                If IrisRange.StartsWith(Candidate) Then
+                    Op = Candidate
+                    IrisRange = IrisRange.Substring(Candidate.Length).Trim()
+                    Exit For
+                End If
+            Next
+            If IrisRange.Contains(" ") OrElse IrisRange.Contains(",") Then Return Nothing
+            Dim Cmp As Integer = CompareVersion(IrisVer, IrisRange)
+            Dim Bad As Boolean
+            Select Case Op
+                Case "<="
+                    Bad = Cmp <= 0
+                Case "<"
+                    Bad = Cmp < 0
+                Case ">="
+                    Bad = Cmp >= 0
+                Case ">"
+                    Bad = Cmp > 0
+                Case Else
+                    Bad = Cmp = 0
+            End Select
+            If Not Bad Then Return Nothing
+            Return "这个游戏版本的光影还没适配好：Iris " & IrisVer & " 和现在的 Sodium 冲突，装上去游戏会起不来。你的游戏还能正常玩，换个游戏版本（比如 1.21.11）就能开光影。"
+        Catch ex As Exception
+            Logger.Error(ex, "新手安装：光影兼容性检查失败（不影响继续）")
+            Return Nothing
+        End Try
+    End Function
+
+    '把 "1.11.7+mc26.3" 这样的版本号变成 3 个数字
+    Private Function ParseVersion(Text As String) As Integer()
+        Dim Parts(2) As Integer
+        Dim Clean As New StringBuilder()
+        For Each C As Char In Text
+            If Char.IsDigit(C) OrElse C = "."c Then
+                Clean.Append(C)
+            Else
+                Exit For
+            End If
+        Next
+        Dim Split As String() = Clean.ToString().Split("."c)
+        For i As Integer = 0 To 2
+            Dim V As Integer = 0
+            If i < Split.Length Then Integer.TryParse(Split(i), V)
+            Parts(i) = V
+        Next
+        Return Parts
+    End Function
+
+    Private Function CompareVersion(A As String, B As String) As Integer
+        Dim PA As Integer() = ParseVersion(A)
+        Dim PB As Integer() = ParseVersion(B)
+        For i As Integer = 0 To 2
+            If PA(i) <> PB(i) Then Return If(PA(i) < PB(i), -1, 1)
+        Next
+        Return 0
+    End Function
+
+    '让 Iris 默认开着这套光影
+    Private Sub WriteIrisConfig(ShaderFileName As String)
+        Dim PropsPath As String = InstalledFolder & "config\iris.properties"
+        Dim Sb As New StringBuilder()
+        Dim HasEnable As Boolean = False
+        Dim HasPack As Boolean = False
+        If FileUtils.Exists(PropsPath) Then
+            For Each Line As String In File.ReadAllLines(PropsPath)
+                If Line.StartsWith("enableShaders=") Then
+                    Sb.AppendLine("enableShaders=true")
+                    HasEnable = True
+                ElseIf Line.StartsWith("shaderPack=") Then
+                    Sb.AppendLine("shaderPack=" & ShaderFileName)
+                    HasPack = True
+                Else
+                    Sb.AppendLine(Line)
+                End If
+            Next
+        End If
+        If Not HasEnable Then Sb.AppendLine("enableShaders=true")
+        If Not HasPack Then Sb.AppendLine("shaderPack=" & ShaderFileName)
+        FileUtils.Write(PropsPath, Sb.ToString())
     End Sub
 
 End Class

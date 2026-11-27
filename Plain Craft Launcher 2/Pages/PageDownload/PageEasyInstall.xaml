@@ -77,6 +77,28 @@
                     <TextBlock x:Name="LabOptimizeStatus" Opacity="0.6" Margin="0,12,0,0" TextWrapping="Wrap" />
                 </StackPanel>
             </local:MyCard>
+
+            <local:MyCard x:Name="CardShaders" Title="开光影（画面更好看，但更吃显卡）" Margin="0,0,0,15" Visibility="Collapsed">
+                <StackPanel Margin="25,42,25,20">
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,14" Opacity="0.85"
+                               Text="光影就是给游戏画面加一层「滤镜」：光线、水面、云会更漂亮。它只改画面，不改玩法。显卡一般的话可能会掉帧，觉得卡就关掉，随时能开。" />
+                    <local:MyListItem x:Name="ItemShaderComp" Type="RadioBox" Height="58" Margin="0,0,0,8"
+                                      Title="Complementary Reimagined（推荐）" Info="均衡：好看，又不会太吃显卡，大部分电脑能跑"
+                                      Click="Shader_Click" />
+                    <local:MyListItem x:Name="ItemShaderBSL" Type="RadioBox" Height="58"
+                                      Title="BSL" Info="更写实，颜色更浓；对显卡要求略高一点"
+                                      Click="Shader_Click" />
+                    <TextBlock TextWrapping="Wrap" Opacity="0.6" Margin="0,14,0,14"
+                               Text="会顺带装上让游戏支持光影的 Iris 和 Sodium，装完进游戏就是开着的。" />
+                    <StackPanel Orientation="Horizontal">
+                        <local:MyButton x:Name="BtnShader" Text=" 一键开光影" ColorType="Highlight" MinWidth="160" Padding="15,8"
+                                        HorizontalAlignment="Left" Click="BtnShader_Click" />
+                        <local:MyButton x:Name="BtnSkipShader" Text=" 先不装" MinWidth="110" Padding="15,8" Margin="10,0,0,0"
+                                        HorizontalAlignment="Left" Click="BtnSkipShader_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="LabShaderStatus" Opacity="0.6" Margin="0,12,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </local:MyCard>
         </StackPanel>
     </local:MyScrollViewer>
 </local:MyPageRight>
