@@ -1,4 +1,4 @@
-Public Class PageOtherTest
+﻿Public Class PageOtherTest
 
     Public Shared Sub StartCustomDownload(Url As String, FileName As String, Optional Folder As String = Nothing)
         Hint("为便于维护，开源内容中不包含百宝箱功能……")
@@ -10,10 +10,11 @@ Public Class PageOtherTest
         Hint("为便于维护，开源内容中不包含百宝箱功能……")
     End Sub
     Public Shared Sub MemoryOptimize(ShowHint As Boolean)
-        If ShowHint Then Hint("为便于维护，开源内容中不包含百宝箱功能……")
+        Dim Text As String = EasyMemory.Optimize()
+        If ShowHint Then Hint(Text, HintType.Green)
     End Sub
     Public Shared Sub MemoryOptimizeInternal(ShowHint As Boolean)
-        If ShowHint Then Hint("为便于维护，开源内容中不包含百宝箱功能……")
+        MemoryOptimize(ShowHint)
     End Sub
     Public Shared Function GetRandomCave() As String
         Return "为便于维护，开源内容中不包含百宝箱功能……"

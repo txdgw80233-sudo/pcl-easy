@@ -201,6 +201,21 @@
     End Sub
 
     '导出诊断包
+    Private Sub BtnToolboxMemory_Click(sender As Object, e As MouseButtonEventArgs)
+        LabToolboxStatus.Text = "正在清理内存……"
+        RunInNewThread(
+            Sub()
+                Dim Text As String = ""
+                Try
+                    Text = EasyMemory.Optimize()
+                Catch ex As Exception
+                    Logger.Error(ex, "内存清理失败")
+                    Text = "清理失败，请查看日志"
+                End Try
+                RunInUi(Sub() LabToolboxStatus.Text = Text)
+            End Sub, "Toolbox Memory Optimize")
+    End Sub
+
     Private Sub BtnToolboxDiag_Click(sender As Object, e As MouseButtonEventArgs)
         Try
             Dim Files As New Dictionary(Of String, String)

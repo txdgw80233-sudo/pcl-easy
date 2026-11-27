@@ -204,6 +204,7 @@
                         <local:MyButton Text=" 备份存档到桌面" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxBackup_Click" />
                         <local:MyButton Text=" 清理日志" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxCleanLogs_Click" />
                         <local:MyButton Text=" 导出诊断包" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxDiag_Click" />
+                        <local:MyButton Text=" 清理内存" MinWidth="150" Padding="13,5" Margin="0,0,12,10" Click="BtnToolboxMemory_Click" />
                     </WrapPanel>
                     <TextBlock x:Name="LabToolboxStatus" TextWrapping="Wrap" Opacity="0.65" Margin="0,4,0,0" />
                 </StackPanel>
