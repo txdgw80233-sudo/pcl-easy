@@ -291,6 +291,37 @@ Public Class FormMain
         End Sub, "UpdateLog Output")
     End Sub
 
+    '首次启动引导：选新手还是老手
+    Private Sub ShowFirstRunGuide()
+        Try
+            If Environment.GetEnvironmentVariable("PCL_SKIP_GUIDE") = "1" Then Return
+            If Settings.Get(Of Integer)("EasyGuideVersion") >= 1 Then Return
+            Settings.Set("EasyGuideVersion", 1)
+            RunInNewThread(
+                Sub()
+                    Thread.Sleep(500)
+                    Dim Choice As Integer = MyMsgBox(
+                        "欢迎使用！先选一下你的情况，我按你的水平来安排界面：" & vbCrLf & vbCrLf &
+                        "· 我是新手：带你走一遍「选玩法 → 装游戏 → 开始玩」，不用懂任何术语。" & vbCrLf &
+                        "· 我懂 Minecraft：直接进启动页，一切照旧。",
+                        "第一次使用", "我是新手，带我走", "我懂，直接开始")
+                    Logger.Info($"首次启动引导选择：{Choice}")
+                    Thread.Sleep(800) '等启动页自己的初始化跑完，避免页面被它改回去
+                    RunInUi(
+                        Sub()
+                            If Choice = 1 Then
+                                FrmMain.PageChange(FormMain.PageType.Download, FormMain.PageSubType.DownloadEasy)
+                                Hint("先选「玩原版」或「加模组」，再点下面的「开始安装」，剩下的它自己会做。")
+                            Else
+                                FrmMain.PageChange(FormMain.PageType.Launch)
+                            End If
+                        End Sub)
+                End Sub, "Easy First Run Guide")
+        Catch ex As Exception
+            Logger.Error(ex, "首次启动引导失败", LogBehavior.Toast)
+        End Try
+    End Sub
+
     '窗口加载
     Private IsWindowLoadFinished As Boolean = False
     Public Sub New()
@@ -417,7 +448,8 @@ Public Class FormMain
                 PanBack.RenderTransform = Nothing
                 IsWindowLoadFinished = True
                 Logger.Info($"DPI：{DPI}，系统版本：{Environment.OSVersion.VersionString}，PCL 位置：{PathExe}")
-            End Sub, , True)
+            End Sub, , True),
+            AaCode(AddressOf ShowFirstRunGuide, , True)
         }, "Form Show")
         'Timer 启动
         AniStart()

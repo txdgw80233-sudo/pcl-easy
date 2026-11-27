@@ -1,4 +1,4 @@
-Imports System.Security.Cryptography
+﻿Imports System.Security.Cryptography
 
 Public Class Settings
 
@@ -93,6 +93,7 @@ Public Class Settings
         New Setting("LaunchArgumentJavaAll", "[]", Source:=Sources.Registry),
         New Setting("LaunchArgumentIndie", 0),
         New Setting("LaunchArgumentIndieV2", 4),
+        New Setting("EasyGuideVersion", 0),
         New Setting("LaunchArgumentVisible", 5, Source:=Sources.Registry),
         New Setting("LaunchArgumentPriority", 1, Source:=Sources.Registry),
         New Setting("LaunchArgumentWindowWidth", 854),
