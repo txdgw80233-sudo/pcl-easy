@@ -720,6 +720,7 @@
     <Compile Include="Modules\ModMain.vb" />
     <Compile Include="Modules\EasyMemory.vb" />
     <Compile Include="Modules\EasyAi.vb" />
+    <Compile Include="Modules\EasyAiRules.vb" />
     <Compile Include="Modules\Base\ModBase.vb" />
     <Compile Include="My Project\AssemblyInfo.vb">
       <SubType>Code</SubType>

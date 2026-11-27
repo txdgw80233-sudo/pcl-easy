@@ -174,7 +174,8 @@ Namespace Windows
         End Sub
 
         Private Async Sub AiChat_Loaded(sender As Object, e As RoutedEventArgs)
-            AddBubble("你好，我是启动器自带的答疑助手，完全在你电脑上跑，不联网。" & vbCrLf &
+            AddBubble("你好，我是启动器自带的答疑助手。" & vbCrLf &
+                      "常见报错会用内置规则直接回答（不用下载模型）；其它问题由本地小模型回答，完全在你电脑上跑，不联网。" & vbCrLf &
                       "可以问我：怎么装游戏、报错是什么意思、这个按钮干什么的、推荐装什么模组或光影。", False)
             Await RefreshStateAsync()
         End Sub
@@ -242,13 +243,24 @@ Namespace Windows
         End Sub
 
         Private Sub TxtInput_TextChanged(sender As Object, e As TextChangedEventArgs)
-            BtnSend.IsEnabled = Not Busy AndAlso TxtInput.Text.Trim() <> "" AndAlso EasyAi.ServerRunning()
+            BtnSend.IsEnabled = Not Busy AndAlso TxtInput.Text.Trim() <> ""
         End Sub
 
         Private Async Sub BtnSend_Click(sender As Object, e As RoutedEventArgs)
             If Busy Then Exit Sub
             Dim Question = TxtInput.Text.Trim()
             If Question = "" Then Exit Sub
+            '先从内置规则库找答案：命中就直接回答，不需要启动本地模型
+            Dim Rule As EasyAiRules.AiRule = EasyAiRules.Match(Question)
+            If Rule IsNot Nothing Then
+                TxtInput.Text = ""
+                AddBubble(Question, True)
+                AddBubble("【内置规则】" & Rule.Title & vbCrLf & vbCrLf & Rule.Answer, False)
+                Messages.Add(NewMessage("user", Question))
+                Messages.Add(NewMessage("assistant", Rule.Answer))
+                PanScroll.ScrollToEnd()
+                Exit Sub
+            End If
             If Not EasyAi.ServerRunning() Then
                 AddBubble("AI 服务还没启动，先点上面的「下载并启动」。", False)
                 Exit Sub
@@ -270,7 +282,7 @@ Namespace Windows
             Finally
                 Busy = False
                 BtnStop.Visibility = Visibility.Collapsed
-                BtnSend.IsEnabled = TxtInput.Text.Trim() <> "" AndAlso EasyAi.ServerRunning()
+                BtnSend.IsEnabled = TxtInput.Text.Trim() <> ""
                 PanScroll.ScrollToEnd()
             End Try
         End Sub
