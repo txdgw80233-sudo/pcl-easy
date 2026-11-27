@@ -46,6 +46,37 @@
                     <TextBlock x:Name="LabStatus" Opacity="0.6" Margin="0,12,0,0" TextWrapping="Wrap" />
                 </StackPanel>
             </local:MyCard>
+
+            <local:MyCard x:Name="CardOptimize" Title="顺手装点优化 Mod（推荐）" Margin="0,0,0,15" Visibility="Collapsed">
+                <StackPanel Margin="25,42,25,20">
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,14" Opacity="0.85"
+                               Text="Mod 就是给游戏加功能的小插件。下面这几个不改玩法、不加新内容，只是让游戏更流畅——不装也能玩，装了更不容易卡。" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Sodium（钠）" Width="130" FontWeight="SemiBold" VerticalAlignment="Top" />
+                        <TextBlock Width="420" TextWrapping="Wrap" Opacity="0.75"
+                                   Text="提高帧数：同样的画质，画面更顺。电脑越旧，提升越明显。" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Lithium（锂）" Width="130" FontWeight="SemiBold" VerticalAlignment="Top" />
+                        <TextBlock Width="420" TextWrapping="Wrap" Opacity="0.75"
+                                   Text="减少卡顿：游戏内部算得更省力，跑图、加载区块时不容易一顿一顿。" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Fabric API" Width="130" FontWeight="SemiBold" VerticalAlignment="Top" />
+                        <TextBlock Width="420" TextWrapping="Wrap" Opacity="0.75"
+                                   Text="底座：上面两个要靠它才能跑。体积很小，装了也不占性能。" />
+                    </StackPanel>
+                    <TextBlock TextWrapping="Wrap" Opacity="0.6" Margin="0,4,0,14"
+                               Text="这三个都只影响你自己的客户端，不影响联机，也不会改变原版玩法。" />
+                    <StackPanel Orientation="Horizontal">
+                        <local:MyButton x:Name="BtnOptimize" Text=" 一键装好" ColorType="Highlight" MinWidth="150" Padding="15,8"
+                                        HorizontalAlignment="Left" Click="BtnOptimize_Click" />
+                        <local:MyButton x:Name="BtnSkipOptimize" Text=" 先不装" MinWidth="110" Padding="15,8" Margin="10,0,0,0"
+                                        HorizontalAlignment="Left" Click="BtnSkipOptimize_Click" />
+                    </StackPanel>
+                    <TextBlock x:Name="LabOptimizeStatus" Opacity="0.6" Margin="0,12,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </local:MyCard>
         </StackPanel>
     </local:MyScrollViewer>
 </local:MyPageRight>

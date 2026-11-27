@@ -30,6 +30,12 @@
     Private IsBusy As Boolean = False
     Private InstallDone As Boolean = False
 
+    '安装完成后的优化 Mod 引导
+    Private InstalledFolder As String = Nothing
+    Private OptimizeBusy As Boolean = False
+    Private ReadOnly OptimizeSlugs As String() = {"sodium", "lithium", "fabric-api"}
+    Private ReadOnly OptimizeNames As String() = {"Sodium（钠）", "Lithium（锂）", "Fabric API"}
+
     Public Overridable Sub Init() Handles Me.Loaded
         If Not IsHooked Then
             IsHooked = True
@@ -279,7 +285,7 @@
         '重复检查
         Dim Folder As String = McFolderSelected & "versions\" & InstanceName & "\"
         If FileUtils.Exists(Folder & InstanceName & ".json") Then
-            Hint("这个版本已经装过了，直接点「开始游戏」就能玩！", HintType.Green)
+            MarkInstalled(Folder, "这个版本之前已经装过了，直接点上面的「启动游戏」就能玩。")
             Return
         End If
         '版本隔离：Mod 版本不隔离容易互相污染，这里直接替小白打开
@@ -299,9 +305,7 @@
         IsBusy = True
         Try
             If McInstallStart(Request) Then
-                InstallDone = True
-                BtnInstall.Text = " 启动游戏"
-                LabStatus.Text = "安装完成！点上面的按钮就能进游戏了。"
+                MarkInstalled(Folder, "安装完成！点上面的按钮就能进游戏了。")
             Else
                 LabStatus.Text = "安装没能开始，请稍后再试。"
             End If
@@ -311,6 +315,77 @@
         Finally
             IsBusy = False
         End Try
+    End Sub
+
+    '版本已经可用：按钮切换成「启动游戏」，并给 Fabric 用户提示优化 Mod
+    Private Sub MarkInstalled(Folder As String, Message As String)
+        InstallDone = True
+        InstalledFolder = Folder
+        BtnInstall.Text = " 启动游戏"
+        LabStatus.Text = Message
+        If SelectedMode = ModeType.Modded AndAlso SelectedLoader = LoaderType.Fabric Then
+            CardOptimize.Visibility = Visibility.Visible
+            LabOptimizeStatus.Text = "装好这三个，游戏会明显更顺畅。点「一键装好」就行，不用你找文件。"
+        End If
+    End Sub
+
+    '一键装优化 Mod
+    Private Sub BtnOptimize_Click(sender As Object, e As MouseButtonEventArgs)
+        If OptimizeBusy Then Return
+        If InstalledFolder Is Nothing OrElse VanillaName Is Nothing Then Return
+        OptimizeBusy = True
+        BtnOptimize.IsEnabled = False
+        BtnSkipOptimize.IsEnabled = False
+        RunInNewThread(
+            Sub()
+                Dim SuccessCount As Integer = 0
+                Dim FailNames As New List(Of String)
+                For i = 0 To OptimizeSlugs.Length - 1
+                    Dim Index As Integer = i
+                    Dim ModName As String = OptimizeNames(Index)
+                    Try
+                        RunInUi(Sub() LabOptimizeStatus.Text = "正在下载 " & ModName & "……（" & (Index + 1) & "/" & OptimizeSlugs.Length & "）")
+                        Dim Url As String = "https://api.modrinth.com/v2/project/" & OptimizeSlugs(Index) &
+                            "/version?game_versions=%5B%22" & VanillaName & "%22%5D&loaders=%5B%22fabric%22%5D"
+                        Dim Raw As String = NetRequestByClientRetry(Url, RequireJson:=True)
+                        Dim VersionList As JArray = JArray.Parse(Raw)
+                        If VersionList.Count = 0 Then Throw New Exception("没有找到适配 " & VanillaName & " 的版本")
+                        Dim Files = VersionList(0)("files")
+                        If Files Is Nothing OrElse Files.Count = 0 Then Throw New Exception("没有可下载的文件")
+                        Dim FileUrl As String = Files(0)("url").ToString
+                        Dim FileName As String = Files(0)("filename").ToString
+                        Dim TargetDir As String = InstalledFolder & "mods\"
+                        If Not FileUtils.Exists(TargetDir & FileName) Then
+                            NetDownloadByClient(FileUrl, TargetDir & FileName)
+                        End If
+                        SuccessCount += 1
+                    Catch ex As Exception
+                        Logger.Error(ex, "新手安装：下载优化 Mod 失败（" & ModName & "）")
+                        FailNames.Add(ModName)
+                    End Try
+                Next
+                RunInUi(
+                    Sub()
+                        OptimizeBusy = False
+                        BtnSkipOptimize.IsEnabled = True
+                        If FailNames.Count = 0 Then
+                            LabOptimizeStatus.Text = "装好了！点上面的「启动游戏」就能玩，进游戏后应该会明显更顺。"
+                            BtnOptimize.Text = " 已装好"
+                            BtnSkipOptimize.Visibility = Visibility.Collapsed
+                        Else
+                            BtnOptimize.IsEnabled = True
+                            BtnOptimize.Text = " 再试一次"
+                            LabOptimizeStatus.Text = "装好了 " & SuccessCount & " 个；" & String.Join("、", FailNames) &
+                                " 没装成，多半是网络问题，可以再点一次重试，也可以先直接进游戏。"
+                        End If
+                    End Sub)
+            End Sub)
+    End Sub
+
+    '先不装
+    Private Sub BtnSkipOptimize_Click(sender As Object, e As MouseButtonEventArgs)
+        CardOptimize.Visibility = Visibility.Collapsed
+        LabStatus.Text = "好的，想装的时候随时回来点「一键安装」页就行。"
     End Sub
 
 End Class
