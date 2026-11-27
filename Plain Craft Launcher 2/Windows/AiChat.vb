@@ -22,11 +22,17 @@ Namespace Windows
         Private ReadOnly BtnSend As New Button
         Private ReadOnly BtnStop As New Button
         Private ReadOnly BtnSetup As New Button
+        Private ReadOnly RadioLight As New RadioButton
+        Private ReadOnly RadioStd As New RadioButton
+        Private ReadOnly CheckStopOnGame As New CheckBox
+        Private ReadOnly LabModelTip As New TextBlock
+        Private ReadOnly LabRisk As New TextBlock
         Private Busy As Boolean = False
         Private SetupBusy As Boolean = False
         Private ServerStarted As Boolean = False
         Private ReadOnly Messages As New JArray
         Private LastProgressTick As Long = 0
+        Private UiReady As Boolean = False
 
         Public Sub New()
             Title = "AI 答疑（本地小模型）"
@@ -45,6 +51,7 @@ Namespace Windows
 
         Private Sub BuildUi()
             Dim Root As New Grid With {.Margin = New Thickness(14)}
+            Root.RowDefinitions.Add(New RowDefinition With {.Height = GridLength.Auto})
             Root.RowDefinitions.Add(New RowDefinition With {.Height = GridLength.Auto})
             Root.RowDefinitions.Add(New RowDefinition With {.Height = New GridLength(1, GridUnitType.Star)})
             Root.RowDefinitions.Add(New RowDefinition With {.Height = GridLength.Auto})
@@ -81,6 +88,42 @@ Namespace Windows
             Header.Child = HeaderGrid
             Root.Children.Add(Header)
 
+            '模型与设置
+            Dim Options As New Border With {
+                .Background = Brushes.White,
+                .CornerRadius = New CornerRadius(6),
+                .Padding = New Thickness(12, 8, 12, 10),
+                .Margin = New Thickness(0, 0, 0, 10)
+            }
+            Dim OptionsStack As New StackPanel()
+            Dim OptionsTitle As New TextBlock With {.Text = "模型选择（按自己电脑的配置选）", .FontWeight = FontWeights.Bold, .Margin = New Thickness(0, 0, 0, 4)}
+            OptionsStack.Children.Add(OptionsTitle)
+            RadioLight.GroupName = "AiModel"
+            RadioLight.Content = "轻量版 0.5B：占用约 400 MB 磁盘、8 GB 内存以内也能跑；回答简单问题够用，偶尔会绕。"
+            RadioLight.Margin = New Thickness(0, 2, 0, 2)
+            AddHandler RadioLight.Checked, AddressOf ModelRadio_Checked
+            OptionsStack.Children.Add(RadioLight)
+            RadioStd.GroupName = "AiModel"
+            RadioStd.Content = "标准版 1.5B：占用约 1.1 GB 磁盘、建议 16 GB 内存；回答更准，低配电脑会明显变慢。"
+            RadioStd.Margin = New Thickness(0, 2, 0, 4)
+            AddHandler RadioStd.Checked, AddressOf ModelRadio_Checked
+            OptionsStack.Children.Add(RadioStd)
+            LabModelTip.Foreground = New SolidColorBrush(Color.FromRgb(&H66, &H66, &H66))
+            LabModelTip.Margin = New Thickness(0, 0, 0, 6)
+            OptionsStack.Children.Add(LabModelTip)
+            CheckStopOnGame.Content = "游戏启动时自动关闭 AI（推荐）"
+            AddHandler CheckStopOnGame.Checked, AddressOf CheckStopOnGame_Changed
+            AddHandler CheckStopOnGame.Unchecked, AddressOf CheckStopOnGame_Changed
+            OptionsStack.Children.Add(CheckStopOnGame)
+            LabRisk.Foreground = New SolidColorBrush(Color.FromRgb(&HC0, &H50, &H20))
+            LabRisk.TextWrapping = TextWrapping.Wrap
+            LabRisk.Margin = New Thickness(0, 4, 0, 0)
+            LabRisk.Text = "风险提示：AI 和游戏同时跑会抢内存与 CPU。8 GB 内存的电脑同时开很容易卡顿、掉帧，甚至游戏崩溃；只有 16 GB 以上内存、并且能接受帧数下降，才建议关掉上面这个选项。"
+            OptionsStack.Children.Add(LabRisk)
+            Options.Child = OptionsStack
+            Grid.SetRow(Options, 1)
+            Root.Children.Add(Options)
+
             '聊天区
             Dim ChatBox As New Border With {
                 .Background = Brushes.White,
@@ -92,7 +135,7 @@ Namespace Windows
             PanScroll.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             PanScroll.Content = PanChat
             ChatBox.Child = PanScroll
-            Grid.SetRow(ChatBox, 1)
+            Grid.SetRow(ChatBox, 2)
             Root.Children.Add(ChatBox)
 
             '输入区
@@ -124,7 +167,7 @@ Namespace Windows
             AddHandler BtnStop.Click, AddressOf BtnStop_Click
             Grid.SetColumn(BtnStop, 2)
             InputGrid.Children.Add(BtnStop)
-            Grid.SetRow(InputGrid, 2)
+            Grid.SetRow(InputGrid, 3)
             Root.Children.Add(InputGrid)
 
             Content = Root
@@ -165,6 +208,7 @@ Namespace Windows
         End Sub
 
         Private Async Sub AiChat_Loaded(sender As Object, e As RoutedEventArgs)
+            InitModelUi()
             AddBubble("你好，我是启动器自带的答疑助手，完全在你电脑上跑，不联网。" & vbCrLf &
                       "可以问我：怎么装游戏、报错是什么意思、这个按钮干什么的、推荐装什么模组或光影。", False)
             Await RefreshStateAsync()
@@ -270,6 +314,56 @@ Namespace Windows
             Cts.Cancel()
             Busy = False
             BtnStop.Visibility = Visibility.Collapsed
+        End Sub
+
+        Private Sub InitModelUi()
+            Try
+                Dim Chosen As Integer = EasyAi.SelectedModel()
+                RadioStd.IsChecked = (Chosen = 1)
+                RadioLight.IsChecked = (Chosen = 0)
+                CheckStopOnGame.IsChecked = Settings.Get(Of Boolean)("EasyAiStopOnGame")
+            Catch ex As Exception
+            End Try
+            RefreshModelTip()
+            UiReady = True
+        End Sub
+
+        Private Sub RefreshModelTip()
+            Dim Ram = 0.0
+            Try
+                Ram = Math.Round(My.Computer.Info.TotalPhysicalMemory / 1024 / 1024 / 1024, 0)
+            Catch ex As Exception
+            End Try
+            Dim Rec = If(EasyAi.RecommendedModel() = 0, "轻量版", "标准版")
+            LabModelTip.Text = $"你的电脑内存约 {Ram} GB，系统推荐：{Rec}。下载过的模型会存在启动器目录，切换只影响下次启动服务。"
+        End Sub
+
+        Private Sub ModelRadio_Checked(sender As Object, e As RoutedEventArgs)
+            If Not UiReady Then Exit Sub
+            Dim Chosen As Integer = If(sender Is RadioStd, 1, 0)
+            Settings.Set("EasyAiModel", Chosen)
+            RefreshModelTip()
+            Logger.Info("切换 AI 模型为 " & If(Chosen = 1, "标准版 1.5B", "轻量版 0.5B"))
+            RunInNewThread(
+                Sub()
+                    Try
+                        EasyAi.StopServer()
+                        RunInUi(Async Sub()
+                                    Await RefreshStateAsync()
+                                End Sub)
+                    Catch ex As Exception
+                        Logger.Error(ex, "切换 AI 模型失败")
+                    End Try
+                End Sub)
+        End Sub
+
+        Private Sub CheckStopOnGame_Changed(sender As Object, e As RoutedEventArgs)
+            If Not UiReady Then Exit Sub
+            Dim Checked As Boolean = CheckStopOnGame.IsChecked
+            Settings.Set("EasyAiStopOnGame", Checked)
+            If Not Checked Then
+                Hint("已关闭「游戏启动时自动关闭 AI」。注意：同时运行会抢内存，配置不够时游戏会很卡。", HintType.Red)
+            End If
         End Sub
 
         Private Function AddBubble(Text As String, IsUser As Boolean) As TextBlock

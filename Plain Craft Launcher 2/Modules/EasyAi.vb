@@ -33,13 +33,26 @@ Public Module EasyAi
         End Get
     End Property
 
-    Public Function UseSmallModel() As Boolean
-        If Environment.GetEnvironmentVariable("PCL_AI_SMALL") = "1" Then Return True
+    Public Function SelectedModel() As Integer
+        If Environment.GetEnvironmentVariable("PCL_AI_SMALL") = "1" Then Return 0
         Try
-            Return My.Computer.Info.TotalPhysicalMemory < 8L * 1024 * 1024 * 1024
+            Dim Chosen As Integer = Settings.Get(Of Integer)("EasyAiModel")
+            If Chosen = 0 OrElse Chosen = 1 Then Return Chosen
         Catch ex As Exception
-            Return True
         End Try
+        Return RecommendedModel()
+    End Function
+
+    Public Function RecommendedModel() As Integer
+        Try
+            Return If(My.Computer.Info.TotalPhysicalMemory < 8L * 1024 * 1024 * 1024, 0, 1)
+        Catch ex As Exception
+            Return 0
+        End Try
+    End Function
+
+    Public Function UseSmallModel() As Boolean
+        Return SelectedModel() = 0
     End Function
 
     Public ReadOnly Property ModelFileName As String
@@ -255,8 +268,15 @@ Public Module EasyAi
             Sub(state)
                 Try
                     If IsGameRunning() AndAlso ServerRunning() Then
-                        Logger.Info("检测到游戏正在运行，停止本地 AI 服务")
-                        StopServer()
+                        Dim StopOnGame As Boolean = True
+                        Try
+                            StopOnGame = Settings.Get(Of Boolean)("EasyAiStopOnGame")
+                        Catch ex As Exception
+                        End Try
+                        If StopOnGame Then
+                            Logger.Info("检测到游戏正在运行，停止本地 AI 服务")
+                            StopServer()
+                        End If
                     End If
                 Catch ex As Exception
                 End Try
