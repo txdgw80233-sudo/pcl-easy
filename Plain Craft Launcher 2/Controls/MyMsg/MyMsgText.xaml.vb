@@ -1,4 +1,4 @@
-Public Class MyMsgText
+﻿Public Class MyMsgText
 
     Private ReadOnly MyConverter As MyMsgBoxConverter
     Private ReadOnly Uuid As Integer = GetUuid()
@@ -23,6 +23,7 @@ Public Class MyMsgText
             Btn2.Visibility = If(Converter.Button2 = "", Visibility.Collapsed, Visibility.Visible)
             Btn3.Visibility = If(Converter.Button3 = "", Visibility.Collapsed, Visibility.Visible)
             ShapeLine.StrokeThickness = GetWPFSize(1)
+            AddHandler BtnCopy.Click, AddressOf BtnCopy_Click
 
         Catch ex As Exception
             Logger.Error(ex, "普通弹窗初始化失败", LogBehavior.Toast)
@@ -98,6 +99,15 @@ Public Class MyMsgText
             MyConverter.Result = 3
             Close()
         End If
+    End Sub
+
+    Private Sub BtnCopy_Click(sender As Object, e As MouseButtonEventArgs)
+        Try
+            Clipboard.SetText(LabCaption.Text)
+            BtnCopy.Text = "已复制"
+        Catch ex As Exception
+            Logger.Error(ex, "复制弹窗文字失败", LogBehavior.Toast, "复制失败，可以手动选中文字后按 Ctrl+C。")
+        End Try
     End Sub
 
     Private Sub Drag(sender As Object, e As MouseButtonEventArgs) Handles PanBorder.MouseLeftButtonDown, LabTitle.MouseLeftButtonDown
